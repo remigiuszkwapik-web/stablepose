@@ -5,7 +5,10 @@ import type { PoseFrame, Pt } from './types';
 
 export type PositionIssue =
   | 'noPerson' | 'stepBack' | 'headMissing' | 'feetMissing'
-  | 'moveCloser' | 'center' | 'turnFrontal' | 'lowVisibility';
+  | 'moveCloser' | 'center' | 'turnFrontal' | 'turnSide' | 'turnBack' | 'lowVisibility';
+
+/** Ansicht, in der die Person zur Kamera stehen soll. */
+export type View = 'front' | 'side' | 'back';
 
 export const POSITION_MESSAGES: Record<PositionIssue, string> = {
   noPerson: 'Stell dich vor die Kamera',
@@ -15,6 +18,8 @@ export const POSITION_MESSAGES: Record<PositionIssue, string> = {
   moveCloser: 'Komm einen Schritt näher',
   center: 'Stell dich in die Bildmitte',
   turnFrontal: 'Dreh dich frontal zur Kamera',
+  turnSide: 'Dreh dich seitlich zur Kamera',
+  turnBack: 'Dreh der Kamera den Rücken zu',
   lowVisibility: 'Ich sehe dich nicht deutlich. Mehr Licht hilft.',
 };
 
@@ -38,13 +43,21 @@ const HEAD = [L.nose, L.leftEye, L.rightEye, L.leftEar, L.rightEar];
 const FEET = [L.leftAnkle, L.rightAnkle, L.leftHeel, L.rightHeel, L.leftFootIndex, L.rightFootIndex];
 const BODY = [L.leftShoulder, L.rightShoulder, L.leftHip, L.rightHip, L.leftKnee, L.rightKnee];
 
-const ORDER: PositionIssue[] = ['noPerson', 'stepBack', 'headMissing', 'feetMissing', 'moveCloser', 'center', 'turnFrontal', 'lowVisibility'];
+const ORDER: PositionIssue[] = ['noPerson', 'stepBack', 'headMissing', 'feetMissing', 'moveCloser', 'center', 'turnFrontal', 'turnSide', 'turnBack', 'lowVisibility'];
+
+/** Körperseite, die in der Seitansicht näher an der Kamera ist (höhere Sichtbarkeit). */
+export function nearSide(p: Pt[]): 'left' | 'right' {
+  const sum = (idx: number[]) => idx.reduce((a, i) => a + p[i].v, 0);
+  const left = sum([L.leftEar, L.leftShoulder, L.leftHip, L.leftKnee, L.leftAnkle]);
+  const right = sum([L.rightEar, L.rightShoulder, L.rightHip, L.rightKnee, L.rightAnkle]);
+  return left >= right ? 'left' : 'right';
+}
 
 /**
  * Prüft, ob die ganze Person (Kopf bis Füße) gut sichtbar und frontal im Bild steht.
  * Reine Funktion.
  */
-export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.position): PositionResult {
+export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.position, view: View = 'front'): PositionResult {
   const empty = { bodyHeight: NaN, centerOffset: NaN, shoulderRatio: NaN, hipRatio: NaN };
   const p = frame.image;
   if (!p) return result(['noPerson'], empty);
@@ -58,15 +71,28 @@ export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.pos
   const hipMid = mid(p[L.leftHip], p[L.rightHip]);
   const torso = dist2(shoulderMid, hipMid);
 
-  // Kopf: Augen/Nase sichtbar? Scheitel liegt grob 0,6 × (Schulter–Nase) über der Nase (geschätzt).
-  const headVisible = HEAD.filter(vis).length >= 3;
+  // Sichtbarkeit je Ansicht: seitlich ist die abgewandte Körperseite verdeckt, hinten das Gesicht.
+  const near = nearSide(p);
+  const sidePts = (side: 'left' | 'right') => (side === 'left'
+    ? { head: [L.nose, L.leftEye, L.leftEar], feet: [L.leftAnkle, L.leftHeel, L.leftFootIndex], body: [L.leftShoulder, L.leftHip, L.leftKnee] }
+    : { head: [L.nose, L.rightEye, L.rightEar], feet: [L.rightAnkle, L.rightHeel, L.rightFootIndex], body: [L.rightShoulder, L.rightHip, L.rightKnee] });
+  const headIdx = view === 'side' ? sidePts(near).head : HEAD;
+  const feetIdx = view === 'side' ? sidePts(near).feet : FEET;
+  const bodyIdx = view === 'side' ? sidePts(near).body : BODY;
+  const headV = view === 'back' ? config.posture.backHeadMinVisibility : minV;
+  const headNeed = view === 'front' ? 3 : view === 'side' ? 2 : 2;
+  const feetNeed = view === 'side' ? 2 : 4;
+
+  // Kopf: Augen/Nase/Ohren sichtbar? Scheitel liegt grob 0,6 × (Schulter–Nase) über der Nase (geschätzt).
+  const headVisible = headIdx.filter((i) => p[i].v >= headV).length >= headNeed;
   const nose = p[L.nose];
-  const headTop = nose.y - 0.6 * Math.max(0, shoulderMid.y - nose.y);
+  const headRef = Math.min(nose.y, p[L.leftEar].y, p[L.rightEar].y);
+  const headTop = headRef - 0.6 * Math.max(0, shoulderMid.y - headRef);
   const headOut = !headVisible || headTop < cfg.edgeMargin * h;
 
-  // Füße: mindestens Knöchel und ein weiterer Fußpunkt je Seite sichtbar und nicht am unteren Rand.
-  const feetVisible = FEET.filter(vis).length >= 4;
-  const feetBottom = Math.max(...FEET.map((i) => p[i].y));
+  // Füße: genug Fußpunkte sichtbar und nicht am unteren Rand.
+  const feetVisible = feetIdx.filter(vis).length >= feetNeed;
+  const feetBottom = Math.max(...feetIdx.map((i) => p[i].y));
   const feetOut = !feetVisible || feetBottom > (1 - cfg.edgeMargin) * h;
 
   if (headOut && feetOut) issues.add('stepBack');
@@ -83,13 +109,19 @@ export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.pos
 
   const shoulderRatio = torso > 0 ? dist2(p[L.leftShoulder], p[L.rightShoulder]) / torso : 0;
   const hipRatio = torso > 0 ? dist2(p[L.leftHip], p[L.rightHip]) / torso : 0;
-  // Frontal: Schultern und Hüfte breit genug und linke Seite liegt im Bild rechts (Person schaut zur Kamera).
-  const facingCamera = p[L.leftShoulder].x > p[L.rightShoulder].x && p[L.leftHip].x > p[L.rightHip].x;
-  if (shoulderRatio < cfg.minShoulderToTorsoRatio || hipRatio < cfg.minHipToTorsoRatio || !facingCamera) {
-    issues.add('turnFrontal');
+  const wide = shoulderRatio >= cfg.minShoulderToTorsoRatio && hipRatio >= cfg.minHipToTorsoRatio;
+  if (view === 'front') {
+    // Frontal: Schultern und Hüfte breit genug und linke Seite liegt im Bild rechts (Person schaut zur Kamera).
+    const facingCamera = p[L.leftShoulder].x > p[L.rightShoulder].x && p[L.leftHip].x > p[L.rightHip].x;
+    if (!wide || !facingCamera) issues.add('turnFrontal');
+  } else if (view === 'side') {
+    if (shoulderRatio > config.posture.maxSideShoulderRatio) issues.add('turnSide');
+  } else {
+    // Rücken: breit genug, Gesicht nicht deutlich sichtbar. Links/rechts prüft postureViews (ggf. Tausch).
+    if (!wide || nose.v > config.posture.maxBackNoseVisibility) issues.add('turnBack');
   }
 
-  if (!BODY.every(vis)) issues.add('lowVisibility');
+  if (!bodyIdx.every(vis)) issues.add('lowVisibility');
 
   return result([...issues], { bodyHeight, centerOffset, shoulderRatio, hipRatio });
 }

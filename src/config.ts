@@ -162,6 +162,17 @@ export const config = {
     countdownS: 3,
     /** [geschätzt] Gerät gilt als „gerade“, wenn die Neigung höchstens so viele Grad beträgt (nur Hinweis). */
     deviceTiltHintDeg: 2,
+    /**
+     * [geschätzt] Seitansicht: Schulterbreite / Rumpflänge darf höchstens so groß sein
+     * (frontal ~0,6–0,8; genau seitlich ~0,1–0,2).
+     */
+    maxSideShoulderRatio: 0.35,
+    /** [geschätzt] Rückansicht: Ist die Nase so gut sichtbar, schaut die Person zur Kamera statt weg. */
+    maxBackNoseVisibility: 0.8,
+    /** [geschätzt] Mindest-Sichtbarkeit der Kopfpunkte in der Rückansicht (Gesicht ist verdeckt). */
+    backHeadMinVisibility: 0.2,
+    /** [geschätzt] Ab dieser Differenz (Grad) wird eine Seite in der Übersicht als „höher“/„geneigt“ aufgeführt. */
+    asymmetryListMinDeg: 1,
   },
 };
 
