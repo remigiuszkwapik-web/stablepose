@@ -1,5 +1,100 @@
 # Fortschritt
 
+## ☀️ Zusammenfassung für dich (Stand Ende des Nachtlaufs)
+
+### 1. Was fertig ist
+
+| Meilenstein | Status | Kurz |
+|---|---|---|
+| M0 Projekt aufsetzen | ✅ fertig | Vite + TS + Vitest, Doku, Modelle im Repo |
+| M1 Kamera und Skelett | ✅ fertig | Kamera vorne/hinten, Lite/Full, Skelett, Debug-Leiste, Video-Modus |
+| M2 Positionscheck + Ablauf | ✅ fertig | Hinweise bis alles passt, Countdown, Timer startet erst in Startposition |
+| M3 BESS-Fehlerzählung | ✅ fertig | Hände, Fuß, Hüfte > 30°, > 5 s; Ferse/Vorfuß experimentell getrennt |
+| M4 Versuche + Ergebnis | ✅ fertig | 3 × pro Seite, Ergebnis-Screen, CSV/JSON-Export |
+| M5 Haltung frontal | ✅ fertig (erster Wurf) | Schulter-/Beckenlinie in Grad, Geräteneigung optional |
+
+Bei jedem Meilenstein waren `npm run build` und `npm test` grün (am Ende **109 Tests**).
+Zusätzlich habe ich jeden Ablauf im Headless-Browser durchgeklickt – mit einem Beispielvideo als
+künstlicher Kamera (M1/M2) und mit einer synthetischen Person (M3–M5). Dabei hat die App
+**keine einzige Anfrage an fremde Server** gestellt.
+
+**Was ich nicht konnte:** auf einem echten iPhone testen. GPU/CPU, fps, Wake Lock, Kamera-Wechsel,
+Download auf iOS und die Geräteneigung sind deshalb nur nach Doku gebaut, nicht am Gerät geprüft.
+Alle Schwellenwerte sind Schätzungen – noch nicht mit echten Personen eingestellt.
+
+### 2. Was du als Erstes tun musst
+
+1. **Lokal starten:** Branch `claude/gym-onboarding-mediapipe-eun3mb` holen, dann im Terminal
+   `npm install` und `npm run dev`. Die **Modelle sind schon im Repository** (Download hat
+   funktioniert), du musst nichts laden. Falls doch etwas fehlt: `npm run fetch-models`.
+2. **iPhone:** gleiche WLAN, in Safari die `Network`-Adresse mit `https://` öffnen, Zertifikats-
+   warnung bestätigen (Details einblenden → diese Website besuchen → Website besuchen). Steht in der README.
+3. **Cloudflare Pages verbinden** (optional, dann ohne Zertifikatswarnung): Workers & Pages →
+   Create → Pages → Connect to Git → dieses Repo. Build command `npm run build`, Output `dist`.
+   **Achtung:** Cloudflare baut standardmäßig den Branch `main`. Entweder diesen Branch nach `main`
+   mergen oder in Cloudflare den Production-Branch auf `claude/gym-onboarding-mediapipe-eun3mb` setzen.
+4. Ohne Person ausprobieren: `https://localhost:5173/?synthetic` (nur Dev-Server) →
+   „Kamera starten“ spielt eine künstliche Person ab. `?synthetic&fast` = kurze Versuche.
+
+### 3. Testanleitung iPhone, Schritt für Schritt
+
+1. Seite öffnen → Du siehst **„Stand“**, darunter drei Tests (Einbeinstand ist gewählt), Kamera
+   Vorne/Hinten, Modell Full/Lite.
+2. iPhone aufs Stativ, ca. 2–3 m entfernt, Hüfthöhe, senkrecht. Für den Anfang: Kamera **Vorne**,
+   damit du dich siehst.
+3. **„Kamera starten“** → Kamera erlauben → kurz „Modell wird geladen …“ → dunkle Ansicht mit
+   deinem Bild (gespiegelt) und grauem Skelett.
+4. Oben rechts **„Debug“** → du siehst fps, Inferenz in ms, „Full“, **GPU oder CPU**. Notier dir
+   fps und GPU/CPU – das ist die wichtigste Info für mich.
+5. Unten **„Links“** tippen (Standbein) → Anleitung → **„Los“**.
+6. Oben rote Hinweise, bis du ganz und frontal im Bild bist (probier „Füße raus“ → „Deine Füße sind
+   nicht im Bild“). Passt es: grün „Gut so – kurz stillhalten“.
+7. Riesiger Countdown **5 … 1**. Danach steht groß, was fehlt („Hände an die Hüfte und das rechte
+   Bein anheben“). Sobald du richtig stehst, startet der **20-s-Timer**.
+8. Während der Messung: Fuß kurz absetzen → oben rot „Fuß abgesetzt / Schritt“, Bein rot im
+   Skelett, unter dem Timer „Fehler 1“. Hand von der Hüfte → „Fehler 2“.
+9. Nach 20 s: „Kurze Pause“ mit Fehlerzahl und Aufschlüsselung → „Weiter“ → Versuch 2 und 3 →
+   „Weiter: Standbein Rechts“ → 3 Versuche.
+10. **„Ergebnis ansehen“**: Links/Rechts mit Mittelwert und Versuchen, Unterschied, Hinweis
+    „Kein medizinischer Test …“. **„CSV exportieren“** → in Dateien sichern → in Numbers öffnen.
+11. Zurück („Neuer Test“) → **„Haltung frontal“** → „Geräteneigung anzeigen“ erlauben → Handy
+    gerade ausrichten → „Los“ → 3 s ruhig stehen → Schultern/Becken in Grad.
+12. **Video-Modus:** Auf dem Start „Video laden“ → Video aus der Mediathek. Es läuft mit Skelett
+    durch denselben Ablauf. Buttons: „Von vorn“, „Pause/Weiter“, „Langsam“, „Gespiegelt“.
+
+### 4. Die drei unsichersten Schwellenwerte – und wie du sie einstellst
+
+Alle stehen in `src/config.ts` unter `singleLeg`. Nach dem Speichern lädt der Dev-Server neu.
+
+1. **Hände an/weg von der Hüfte** – `handsOnHipMax` (0,35), `handsOffHipMin` (0,5),
+   `elbowBentMaxDeg` (140°), `elbowStraightMinDeg` (155°).
+   Der MediaPipe-Hüftpunkt sitzt am Gelenk, nicht am Beckenkamm; bei hängenden Armen ist das
+   Handgelenk auch nah dran. Darum zusätzlich der Ellbogenwinkel.
+   *Einstellen:* Video aufnehmen: 5 s Hände an der Hüfte, dann eine Hand locker wegnehmen, dann
+   Arme hängen lassen. „Video laden“ → „Langsam“ → Debug: „Hand L→Hüfte“, „Hand R→Hüfte“ und
+   „Ellbogen L / R“ ablesen. Die Schwellen zwischen „an der Hüfte“ und „weg“ legen.
+2. **Fuß abgesetzt** – `footDownMax` (0,04 Beinlängen) und `footRaisedMin` (0,10).
+   Wer das Bein nur wenig anhebt, liegt nah an der Grenze; Fußpunkte wackeln frontal stark.
+   *Einstellen:* Video: Bein normal angehoben, dann Zehen kurz auf den Boden tippen, dann Fuß
+   ganz absetzen. Debug: „Fuß gehoben (×Bein)“. `footDownMax` knapp über den Wert beim Antippen,
+   `footRaisedMin` deutlich darunter, was du im normalen Stand siehst.
+3. **Hüfte über 30°** – `hipAngleMaxDeg` (30°, aus BESS) – unsicher ist hier weniger die Zahl als
+   die **Messung**: Die Beugung nach vorn hängt an der Tiefenschätzung (z), die von vorn ungenau
+   ist, und die BESS-Haltung hat selbst schon 20–30° Beugung.
+   *Einstellen:* Video: Bein normal halten, dann Knie deutlich nach vorn/oben ziehen, dann Bein
+   seitlich abspreizen. Debug: „Hüfte Beugung“ und „Hüfte Abspreizung“. Wenn die Beugung im
+   normalen Stand schon um 30° schwankt, wird zu oft gezählt → testweise Kamera leicht seitlich
+   stellen oder die Schwelle für die Beugung getrennt anheben (eigene Zeile in `config.ts` ergänzen).
+
+Ebenfalls einen Blick wert: `errorMinDurationMs` (250 ms Entprellung). Im Debug zeigt „prüft …“,
+dass eine Bedingung gerade erfüllt ist, aber noch nicht lange genug.
+
+Tipp für reproduzierbare Tests: Videos mit der **Rückkamera** aufnehmen (nicht gespiegelt). Bei
+Frontkamera-Videos ggf. „Gespiegelt“ einschalten, wenn links/rechts vertauscht wirkt
+(Gegenprobe: Standbein links wählen und das linke Bein heben – dann darf der Timer nicht starten).
+
+---
+
 ## M0 – Projekt aufsetzen ✅
 
 **Gebaut**

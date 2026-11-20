@@ -2,8 +2,11 @@
 
 **Stand** ist ein Web-Prototyp für ein kamerabasiertes Trainings-Onboarding in kleinen Gyms.
 Die App läuft im Browser (Safari auf iPhone und iPad), nutzt die Kamera und erkennt mit
-MediaPipe Pose Landmarker 33 Körperpunkte. Erster Test: **Einbeinstand mit Fehlerzählung
-nach den BESS-Kriterien**.
+MediaPipe Pose Landmarker 33 Körperpunkte. Tests:
+
+- **Einbeinstand** mit Fehlerzählung nach den BESS-Kriterien (3 Versuche pro Seite, Export CSV/JSON)
+- **Haltung frontal** (erster Wurf): Neigung von Schulter- und Beckenlinie in Grad
+- **Live-Ansicht**: nur Skelett, ohne Messung
 
 > Kein Medizinprodukt. Keine Diagnosen. Die Werte dienen nur zur Orientierung fürs Training.
 
@@ -61,6 +64,20 @@ Warum HTTPS? Safari erlaubt den Kamerazugriff nur auf sicheren Seiten (HTTPS ode
 
 Tipp: Für Messungen das iPhone auf ein Stativ stellen, ca. 2 bis 3 m entfernt, Kamera auf
 Hüfthöhe und möglichst senkrecht.
+
+## Ohne Person ausprobieren (nur Dev-Server)
+
+- `https://localhost:5173/?synthetic` → „Kamera starten“ spielt eine künstliche Person ab
+  (setzt den Fuß bei ~12 s ab und nimmt bei ~18 s eine Hand weg).
+- `?synthetic&fast` → zusätzlich kurze Versuche (6 s, 2 pro Seite).
+
+Beides ist im Produktions-Build nicht enthalten.
+
+## Schwellen einstellen
+
+Alle Werte stehen in `src/config.ts`, jeweils mit Herkunft ([BESS], [MediaPipe], [geschätzt]).
+Mit „Video laden“ + „Langsam“ + „Debug“ siehst du live die Messgrößen und welche Fehlerbedingung
+gerade aktiv ist. Details in `PROGRESS.md`, Abschnitt 4.
 
 ## Tests und Build
 
