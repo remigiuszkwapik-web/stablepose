@@ -186,3 +186,17 @@ jeweiligen Meilenstein.
 - **Plattenmaße** werden im localStorage gemerkt (nur die zwei Maße, keine Messdaten) – damit man
   sie nicht jedes Mal neu eingeben muss.
 - **Nicht gespeichert / nicht exportiert:** das Messergebnis selbst.
+
+## Nachbesserung: Hände an der Hüfte (nach erstem iPhone-Test)
+
+Rückmeldung: „Hand an der Hüfte“ wurde schlecht erkannt. Zwei Ursachen im Code:
+1. **Sichtbarkeit:** Für Handgelenk/Ellbogen galt dieselbe Mindest-visibility (0,6) wie für den
+   Rumpf. Liegt die Hand an der Hüfte, ist sie teils verdeckt; MediaPipe meldet dann oft < 0,6,
+   obwohl die Position stimmt. Folge: Handgelenk verworfen → Startposition nie erfüllt.
+   **Neu:** eigene Schwelle `armMinVisibility` = 0,3.
+2. **Bezugspunkt:** Gemessen wurde zum MediaPipe-Hüftpunkt (Hüftgelenk). Die Hände liegen aber am
+   Beckenkamm, höher und weiter außen. **Neu:** Bezugspunkt = Hüftpunkt + 0,2 Rumpflängen nach oben
+   + 0,1 nach außen (`crestUp`, `crestOut`). Hängende Arme liegen dadurch noch klarer daneben (> 0,5).
+3. Ellbogen-Schwellen großzügiger: gebeugt ≤ 150° (vorher 140°), „gestreckt = Hand weg“ > 165° (vorher 155°),
+   weil der Winkel im 2D-Bild je nach Ellbogenrichtung gestreckter wirkt.
+Debug zeigt jetzt zusätzlich die Sichtbarkeit beider Handgelenke; Werte über der Schwelle sind rot.

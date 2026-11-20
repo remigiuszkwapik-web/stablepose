@@ -13,7 +13,7 @@ export interface StanceMetrics {
   torsoLength: number;
   /** Höhe des Spielfußes über dem Standfuß, relativ zur Beinlänge (positiv = oben). */
   footLift: number;
-  /** Abstand Handgelenk → gleichseitige Hüfte, relativ zur Rumpflänge. */
+  /** Abstand Handgelenk → geschätzter Beckenkamm derselben Seite, relativ zur Rumpflänge. */
   wristHip: { left: number; right: number };
   /** Ellbogenwinkel je Seite in Grad (180 = gestreckt). */
   elbow: { left: number; right: number };
@@ -86,15 +86,27 @@ export function stanceMetrics(frame: PoseFrame, stand: Side, minV = config.posit
   const swingLow = footLowestY(p, otherSide(stand), minV);
   const footLift = (standLow - swingLow) / legLength;
 
+  const armV = config.singleLeg.armMinVisibility;
+  // Beckenkamm-Punkt: Hüftpunkt nach oben und nach außen verschoben (siehe config).
+  const crest = (side: Side): Pt => {
+    const s = SIDE[side];
+    const other = SIDE[otherSide(side)];
+    const outSign = Math.sign(p[s.hip].x - p[other.hip].x) || 1;
+    return {
+      ...p[s.hip],
+      x: p[s.hip].x + outSign * config.singleLeg.crestOut * torsoLength,
+      y: p[s.hip].y - config.singleLeg.crestUp * torsoLength,
+    };
+  };
   const wh = (side: Side) => {
     const s = SIDE[side];
-    if (!visible(p[s.wrist], minV) || !visible(p[s.hip], minV)) return NaN;
-    return dist2(p[s.wrist], p[s.hip]) / torsoLength;
+    if (!visible(p[s.wrist], armV) || !visible(p[s.hip], minV)) return NaN;
+    return dist2(p[s.wrist], crest(side)) / torsoLength;
   };
 
   const elbow = (side: Side) => {
     const s = SIDE[side];
-    if (![s.shoulder, s.elbow, s.wrist].every((i) => visible(p[i], minV))) return NaN;
+    if (!visible(p[s.shoulder], minV) || !visible(p[s.elbow], armV) || !visible(p[s.wrist], armV)) return NaN;
     return angle3(p[s.shoulder], p[s.elbow], p[s.wrist]);
   };
 
