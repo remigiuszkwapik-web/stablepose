@@ -87,6 +87,23 @@ npm run build    # Typprüfung + Produktions-Build nach dist/
 npm run preview  # dist/ lokal ansehen (auch per HTTPS im WLAN)
 ```
 
+## Auf GitHub Pages veröffentlichen (empfohlen fürs Smartphone)
+
+Die Datei `.github/workflows/pages.yml` baut die App bei jedem Push automatisch und
+veröffentlicht sie. Einmalig einrichten:
+
+1. Auf github.com im Repository **Settings → Pages** öffnen.
+2. Unter **Build and deployment → Source** „**GitHub Actions**“ wählen.
+3. **Settings → Environments → github-pages**: Unter „Deployment branches and tags“ den Branch
+   `claude/gym-onboarding-mediapipe-eun3mb` hinzufügen (sonst darf nur `main` veröffentlichen).
+   Alternativ den Branch nach `main` mergen.
+4. Unter **Actions → GitHub Pages → Run workflow** einmal starten (oder einfach pushen).
+5. Nach 1–2 Minuten ist die App erreichbar unter
+   `https://<dein-github-name>.github.io/stablepose/` – mit HTTPS, ohne Zertifikatswarnung.
+
+Auf dem iPhone in Safari öffnen, „Teilen → Zum Home-Bildschirm“ legt ein App-Symbol an.
+Hinweis: Die Seite ist öffentlich erreichbar (die Messdaten bleiben trotzdem auf dem Gerät).
+
 ## Auf Cloudflare Pages veröffentlichen
 
 1. Bei Cloudflare anmelden → **Workers & Pages** → **Create** → **Pages** →
