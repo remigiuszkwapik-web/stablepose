@@ -36,6 +36,9 @@ Alle Schwellenwerte sind Schätzungen – noch nicht mit echten Personen eingest
 4. Ohne Person ausprobieren: `https://localhost:5173/?synthetic` (nur Dev-Server) →
    „Kamera starten“ spielt eine künstliche Person ab. `?synthetic&fast` = kurze Versuche.
 
+**GitHub Pages:** Die App wird bei jedem Push automatisch veröffentlicht unter
+https://remigiuszkwapik-web.github.io/stablepose/ (Einrichtung siehe README).
+
 ### 3. Testanleitung iPhone, Schritt für Schritt
 
 1. Seite öffnen → Du siehst **„Stand“**, darunter drei Tests (Einbeinstand ist gewählt), Kamera
