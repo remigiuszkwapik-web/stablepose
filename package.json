@@ -1,0 +1,26 @@
+{
+  "name": "stand",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Stand – kamerabasiertes Trainings-Onboarding (Prototyp). Läuft komplett lokal im Browser.",
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/copy-assets.mjs",
+    "dev": "node scripts/copy-assets.mjs && vite --host",
+    "build": "node scripts/copy-assets.mjs && tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fetch-models": "node scripts/fetch-models.mjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.3",
+    "geist": "^1.9.2"
+  }
+}
