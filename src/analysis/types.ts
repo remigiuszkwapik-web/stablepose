@@ -20,6 +20,8 @@ export interface PoseFrame {
   height: number;
   image: Pt[] | null;
   world: Pt[] | null;
+  /** Optional: Segmentierungsmaske der Person (Werte 0..1), nur wenn angefordert. */
+  mask?: { data: Float32Array; width: number; height: number };
 }
 
 export type Side = 'left' | 'right';

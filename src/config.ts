@@ -110,6 +110,43 @@ export const config = {
     startPoseHoldMs: 500,
   },
 
+  height: {
+    /** [Produkt] Messdauer in Sekunden; Ergebnis = Median über alle Frames. */
+    durationS: 2,
+    /** [Produkt] Countdown vor der Messung. */
+    countdownS: 3,
+    /**
+     * [geschätzt] Höhe der Fußpunkte (Ferse, Zehenpunkt) über der Plattenoberfläche in cm.
+     * Damit wird bestimmt, wo auf der Platte die Person steht (Körperachse).
+     */
+    footPointHeightCm: 2.5,
+    /** [geschätzt] Angenommene Ungenauigkeit beim Antippen einer Plattenecke in Pixeln (Quellbild). */
+    tapErrorPx: 3,
+    /** [geschätzt] Unsicherheit des Scheitels aus dem Körperumriss (Haare, Kantenunschärfe) in cm. */
+    headMaskErrorCm: 1.5,
+    /** [geschätzt] Unsicherheit des Scheitels, wenn er nur aus Gesichtspunkten geschätzt wird. */
+    headLandmarkErrorCm: 5,
+    /** [geschätzt] Unsicherheit der Körperachse (wo genau auf der Platte die Person steht) in cm. */
+    feetAxisErrorCm: 1.5,
+    /** [MediaPipe] Ab diesem Wert gehört ein Pixel der Segmentierungsmaske zur Person. */
+    maskThreshold: 0.5,
+    /**
+     * [geschätzt] Bildwinkel der Kamera über die lange Bildseite (16:9-Video). Wird nur für die
+     * Neigungskorrektur gebraucht; bei waagerechter Kamera kürzt er sich heraus.
+     * Hinten ≈ iPhone-Hauptkamera, vorn ≈ Frontkamera.
+     */
+    fovBackDeg: 63,
+    fovFrontDeg: 70,
+    /** [geschätzt] Unsicherheit des Bildwinkels (relativ), geht in die Spanne ein. */
+    fovUncertainty: 0.1,
+    /** [geschätzt] Unsicherheit der Neigung in Grad: mit Lagesensor bzw. ohne (dann Annahme „waagerecht“). */
+    tiltErrorWithSensorDeg: 1.5,
+    tiltErrorWithoutSensorDeg: 6,
+    /** [geschätzt] Ergebnisse außerhalb dieses Bereichs werden als „nicht gemessen“ verworfen. */
+    minCm: 80,
+    maxCm: 230,
+  },
+
   posture: {
     /** [Produkt] Messdauer „Haltung frontal“ in Sekunden. */
     durationS: 3,

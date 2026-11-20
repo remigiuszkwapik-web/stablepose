@@ -3,7 +3,7 @@ import type { ModelVariant } from '../pose/landmarker';
 import type { Facing } from '../pose/source';
 import { h, segmented } from './dom';
 
-export type TestKind = 'singleLeg' | 'posture' | 'live';
+export type TestKind = 'singleLeg' | 'posture' | 'height' | 'live';
 
 export interface StartSettings {
   test: TestKind;

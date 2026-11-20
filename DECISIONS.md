@@ -152,3 +152,37 @@ jeweiligen Meilenstein.
   unempfindlich gegen die unterschiedliche Drehrichtungs-Konvention von `screen.orientation.angle`
   im Querformat. Auf einem echten iPhone **noch nicht geprüft**.
 - **Kein Export** für „Haltung frontal“ (nicht im Briefing verlangt).
+
+## M6 – Körpergröße mit Referenzplatte
+
+- **Verfahren:** Maßstab aus der Plattenbreite genau an der Stelle, wo die Person steht
+  (Homographie aus den vier Ecken), Körpergröße = Pixelabstand Fußpunkt → Scheitel / Maßstab.
+  Bei waagerechter Kamera ist das exakt und unabhängig von Brennweite und Kamerahöhe.
+- **Verworfen: komplette Kameralage aus der Platte.** Mathematisch elegant (Brennweite + Lage aus
+  einem Rechteck), aber im Test unbrauchbar: Die Platte ist im Bild nur ca. 160 × 40 px groß; schon
+  ±2 px Tippfehler verschieben die Höhe um 10–40 cm.
+- **Neigung ist wichtiger als gedacht:** ca. 1 cm Fehler pro Grad Neigung nach vorn/hinten (sie
+  verändert die Entfernungsschätzung). Deshalb: Lagesensor (DeviceOrientation) dringend empfohlen.
+  Mit Sensor wird die Neigung herausgerechnet; ohne wird „waagerecht“ angenommen und die Spanne
+  entsprechend größer angezeigt. Das Vorzeichen (Rück- vs. Frontkamera) ist **nicht am Gerät geprüft**
+  – darum zusätzlich der Hinweis, das Handy möglichst gerade zu stellen (dann ist es egal).
+- **Seitliche Drehung (roll)** wird nur angezeigt, nicht herausgerechnet (Vorzeichen am Gerät
+  ungeprüft; bei ≤ 2° unter 1 cm Wirkung). Die Funktion kann es, Test prüft das Vorzeichen.
+- **Bildwinkel** wird angenommen (hinten 63°, vorn 70°). Wirkt nur über die Neigungskorrektur;
+  bei waagerechter Kamera gar nicht (Test: ±15 % Bildwinkel → < 0,5 cm).
+- **Scheitel:** aus der Segmentierungsmaske von MediaPipe (oberster Punkt des Körperumrisses über
+  dem Kopf), nur während der Messung eingeschaltet (kostet Rechenzeit). Fallback: Schätzung aus
+  Gesichtspunkten (±5 cm). Haare zählen beim Umriss mit – ein Grund, warum es kein Stadiometer ersetzt.
+- **Körperachse:** Mitte aus Fersen und Zehenpunkten, um 2,5 cm (geschätzte Höhe dieser Punkte über
+  dem Boden) auf die Plattenoberfläche heruntergerechnet. Ohne diese Korrektur läge der Fußpunkt
+  scheinbar ~6 cm weiter hinten → ca. 4 cm Fehler.
+- **Ecken antippen mit Lupe:** Ein Finger trifft auf ±5 Bildschirmpixel, das wären im Kamerabild
+  ±10–15 px. Darum: erster Tipp vergrößert 4×, zweiter Tipp setzt die Ecke. Automatische
+  Kantenerkennung der weißen Platte wäre der nächste Schritt (genauer, ±1 px).
+- **Spanne („± x cm, geschätzt“):** quadratische Summe aus Ecken-Ungenauigkeit (jede Ecke ±3 px,
+  durchgerechnet), Neigungsunsicherheit (±1,5° mit Sensor, ±6° ohne), Bildwinkel ±10 %, Scheitel
+  (Umriss 1,5 cm / Gesicht 5 cm), Körperachse 1,5 cm. Alle Werte in `config.ts` → `height`.
+- **Ergebnis** = Median über 2 s, nur Bilder mit Person ganz im Bild und auf der Platte; ganze cm.
+- **Plattenmaße** werden im localStorage gemerkt (nur die zwei Maße, keine Messdaten) – damit man
+  sie nicht jedes Mal neu eingeben muss.
+- **Nicht gespeichert / nicht exportiert:** das Messergebnis selbst.

@@ -26,6 +26,20 @@ export interface SessionUI {
   /** Videodatei von vorn abspielen (nur Video-Modus). */
   restartVideo(): void;
   exit(): void;
+  /** Welche Kamera (null = Videodatei/synthetisch). */
+  facing: Facing | null;
+  /** Tipp auf das Bild, in Quellbild-Pixeln (Spiegelung berücksichtigt). null = aus. */
+  onTap(cb: ((p: { x: number; y: number }) => void) | null): void;
+  /** Zusätzliche Zeichnung über dem Skelett (Quellbild-Pixel). Wird jedes Bild aufgerufen. */
+  setOverlay(draw: ((ctx: CanvasRenderingContext2D, frame: PoseFrame | null) => void) | null): void;
+  /** Overlay sofort neu zeichnen (z. B. nach einem Tipp bei pausiertem Video). */
+  redraw(): void;
+  /** Segmentierungsmaske anfordern (Körperumriss). */
+  setMask(on: boolean): void;
+  /** Größe des Quellbilds. */
+  sourceSize(): { width: number; height: number };
+  /** Ansicht um einen Quellbild-Punkt vergrößern (Lupe zum genauen Antippen). null = normal. */
+  setZoom(p: { x: number; y: number } | null, factor?: number): void;
 }
 
 export interface Controller {
@@ -92,7 +106,16 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
   o.root.replaceChildren(root);
 
   let source: Source | null = null;
+  let syntheticSize: { w: number; h: number } | null = null;
   let highlight: Set<number> | null = null;
+  let overlayDraw: ((ctx: CanvasRenderingContext2D, frame: PoseFrame | null) => void) | null = null;
+  let tapCb: ((p: { x: number; y: number }) => void) | null = null;
+  let lastFrame: PoseFrame | null = null;
+  const paint = (frame: PoseFrame | null) => {
+    drawSkeleton(canvas, frame, { highlight: highlight ?? undefined });
+    const ctx = canvas.getContext('2d');
+    if (overlayDraw && ctx) overlayDraw(ctx, frame);
+  };
   let disposed = false;
   const wake = new WakeLock();
 
@@ -101,7 +124,8 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
     clock: isFile ? 'media' : 'wall',
     sourceMirrored: () => fileMirrored,
     onFrame: (frame, stats) => {
-      drawSkeleton(canvas, frame, { highlight: highlight ?? undefined });
+      lastFrame = frame;
+      paint(frame);
       controller.onFrame(frame, stats);
       debug.update(frame, stats, debugRows);
     },
@@ -131,13 +155,46 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
     isFile,
     restartVideo,
     exit: () => cleanup(),
+    facing: o.source.kind === 'camera' ? o.source.facing : null,
+    onTap(cb) {
+      tapCb = cb;
+      mediaBox.classList.toggle('tappable', !!cb);
+    },
+    setOverlay(draw) { overlayDraw = draw; },
+    redraw() { paint(lastFrame); },
+    setMask(on) { void runner.setMask(on); },
+    sourceSize: () => ({ width: lastFrame?.width ?? video.videoWidth, height: lastFrame?.height ?? video.videoHeight }),
+    setZoom(p, factor = 4) {
+      if (!p) {
+        mediaBox.style.transform = '';
+        mediaBox.style.transformOrigin = '';
+        return;
+      }
+      const { width, height } = ui.sourceSize();
+      const mirrored = mediaBox.classList.contains('mirrored');
+      const ox = ((mirrored ? width - p.x : p.x) / width) * 100;
+      const oy = (p.y / height) * 100;
+      mediaBox.style.transformOrigin = `${ox}% ${oy}%`;
+      // Spiegelung (Klasse) muss in der Inline-Transformation erhalten bleiben
+      mediaBox.style.transform = `${mirrored ? 'scaleX(-1) ' : ''}scale(${factor})`;
+    },
   };
+  mediaBox.addEventListener('click', (e) => {
+    if (!tapCb) return;
+    const r = mediaBox.getBoundingClientRect();
+    const { width, height } = ui.sourceSize();
+    if (!width || !height || !r.width) return;
+    let x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    if (mediaBox.classList.contains('mirrored')) x = 1 - x; // angezeigt gespiegelt, Quelle nicht
+    tapCb({ x: x * width, y: y * height });
+  });
   const controller = o.controller(ui);
 
   // Anzeige in das verfügbare Feld einpassen (Hoch- und Querformat).
   const fit = () => {
-    const vw = video.videoWidth || 16;
-    const vh = video.videoHeight || 9;
+    const vw = syntheticSize?.w ?? (video.videoWidth || 16);
+    const vh = syntheticSize?.h ?? (video.videoHeight || 9);
     const r = stage.getBoundingClientRect();
     const s = Math.min(r.width / vw, r.height / vh);
     mediaBox.style.width = `${Math.floor(vw * s)}px`;
@@ -165,14 +222,15 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
     // Nur Entwicklung: künstliche Person statt Kamera (siehe src/dev/syntheticPose.ts).
     const { syntheticScript } = await import('../dev/syntheticPose');
     status.remove();
-    mediaBox.style.width = '360px';
-    mediaBox.style.height = '640px';
+    syntheticSize = { w: 720, h: 1280 };
+    fit();
     const t0 = performance.now();
     const timer = window.setInterval(() => {
       if (disposed) return window.clearInterval(timer);
       const stand = (window as unknown as { __standSide?: 'left' | 'right' }).__standSide;
-      const frame = syntheticScript(performance.now() - t0, stand);
-      drawSkeleton(canvas, frame, { highlight: highlight ?? undefined });
+      const frame = syntheticScript(performance.now() - t0, stand, o.title === 'Körpergröße');
+      lastFrame = frame;
+      paint(frame);
       const stats = { fps: 30, inferenceMs: 0, model: 'synthetisch', delegate: '–' };
       controller.onFrame(frame, stats);
       debug.update(frame, stats, debugRows);

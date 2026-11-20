@@ -12,6 +12,7 @@
 | M3 BESS-Fehlerzählung | ✅ fertig | Hände, Fuß, Hüfte > 30°, > 5 s; Ferse/Vorfuß experimentell getrennt |
 | M4 Versuche + Ergebnis | ✅ fertig | 3 × pro Seite, Ergebnis-Screen, CSV/JSON-Export |
 | M5 Haltung frontal | ✅ fertig (erster Wurf) | Schulter-/Beckenlinie in Grad, Geräteneigung optional |
+| M6 Körpergröße mit Platte | ✅ Prototyp | Ecken antippen (Lupe), Neigung per Sensor, Ergebnis mit Spanne |
 
 Bei jedem Meilenstein waren `npm run build` und `npm test` grün (am Ende **109 Tests**).
 Zusätzlich habe ich jeden Ablauf im Headless-Browser durchgeklickt – mit einem Beispielvideo als
@@ -286,3 +287,44 @@ Frontkamera-Videos ggf. „Gespiegelt“ einschalten, wenn links/rechts vertausc
 4. Ergebnis: zwei große Gradzahlen (Schultern, Becken) mit „links höher“ o. ä.
 5. Gegenprobe: Kipp das iPhone absichtlich um ~5° und miss noch einmal – die Werte verschieben
    sich um etwa diesen Betrag. Genau das sagt der Warnhinweis.
+
+## M6 – Körpergröße mit Referenzplatte (Prototyp) ✅
+
+**Gebaut**
+- Neuer Test „Körpergröße“: Plattenmaße eingeben (werden gemerkt) → optional „Neigung messen“ →
+  vier Ecken antippen (mit Lupe: grob tippen, Bild zoomt 4×, genau tippen) → „Los“ → auf die Platte
+  stellen → 3 s Countdown → 2 s Messung → Ergebnis „176 cm ± 3 cm (geschätzt)“.
+- Overlay: Plattenumriss, gestrichelte Linie vom Fußpunkt zum Scheitel (grün = auf der Platte).
+- Debug: Maßstab am Fuß (px/cm), Fußposition auf der Platte, Scheitel-Methode, Größe pro Bild,
+  Neigung, angenommene Brennweite.
+
+**Getestet**
+- 127 Unit-Tests gesamt. Neu: synthetische Lochkamera vor der Platte. Ideale Punkte: 176 cm auf
+  ±0,5 cm bei waagerechter, geneigter, tiefer Kamera; 120/160/200 cm; falscher Bildwinkel ±15 %
+  egal bei waagerechter Kamera; Waage 5° schräg < 1 %; ±2 px Eckfehler < 5 cm und innerhalb der
+  angezeigten Spanne; unbekannte Neigung → Fehler innerhalb der Spanne; Vorzeichen der Drehung;
+  Maske, Fallback, „nicht auf der Platte“, unplausible Werte.
+- Headless-Browser mit synthetischer Person: Maße eingeben, Ecken mit Lupe antippen, messen,
+  Ergebnis. ✔
+
+**Ehrliche Einschätzung**
+- Rechnerisch (mit Sensor, Umriss, Lupe) etwa **±3–4 cm**. Ohne Neigungssensor eher ±8–12 cm.
+- Wie gut es wirklich ist, zeigt erst ein Vergleich mit dem Stadiometer (10–20 Personen).
+
+**Offen**
+- Vorzeichen der Neigung am iPhone prüfen (Test unten, Schritt 6).
+- Automatische Erkennung der Plattenecken (genauer als Antippen).
+
+**Testanleitung**
+1. Start → „Körpergröße“ → Kamera **Hinten** → „Kamera starten“.
+2. iPhone aufs Stativ, ca. 2–3 m vor der Waage, Hüfthöhe. Waage gerade zur Kamera.
+3. Breite (quer zur Kamera) und Tiefe der Glasplatte in cm eingeben.
+4. „Neigung messen“ → erlauben. Darunter steht z. B. „Handy seitlich 1° · nach vorn/hinten 2°“.
+   Handy ausrichten, bis die Zeile grün ist.
+5. „Weiter: Ecken antippen“ → in die Nähe einer Ecke tippen → Bild wird groß → genau auf die Ecke
+   tippen. Viermal. Rot umrandet siehst du die Platte → „Fertig“.
+6. „Los“, auf die Platte stellen, gerade stehen. Countdown, 2 s Messung, dann z. B.
+   „176 cm ± 3 cm (geschätzt)“. **Gegenprobe Neigung:** Handy absichtlich 5° nach unten neigen,
+   neu einmessen und messen. Bleibt der Wert ähnlich → Vorzeichen stimmt. Springt er um ~10 cm →
+   Vorzeichen falsch, bitte melden.
+7. Vergleich mit dem Stadiometer notieren (Debug-Werte helfen beim Einstellen).
