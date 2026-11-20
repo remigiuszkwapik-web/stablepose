@@ -4,6 +4,7 @@ import { renderLicenses } from './ui/licenses';
 import { liveController } from './ui/live';
 import { singleLegController } from './ui/singleLeg';
 import { renderResults } from './ui/results';
+import { postureController } from './ui/posture';
 import type { TrialRecord } from './analysis/results';
 import { openSession, type SourceRequest } from './ui/session';
 import { renderStart, settings, type StartHandlers } from './ui/start';
@@ -17,6 +18,7 @@ if (import.meta.env.DEV && location.search.includes('fast')) {
 
 const TESTS: StartHandlers['tests'] = [
   { value: 'singleLeg', label: 'Einbeinstand', description: `Gleichgewicht auf einem Bein, ${config.singleLeg.durationS} s` },
+  { value: 'posture', label: 'Haltung frontal', description: `Schulter- und Beckenlinie, ${config.posture.durationS} s` },
   { value: 'live', label: 'Live-Ansicht', description: 'Nur Skelett anzeigen, ohne Messung' },
 ];
 
@@ -38,11 +40,13 @@ function start(source: SourceRequest) {
     root: app,
     source,
     model: settings.model,
-    title: settings.test === 'singleLeg' ? 'Einbeinstand' : 'Live-Ansicht',
+    title: { singleLeg: 'Einbeinstand', posture: 'Haltung frontal', live: 'Live-Ansicht' }[settings.test],
     controller:
       settings.test === 'singleLeg'
         ? (ui) => singleLegController(ui, (records) => { finished = records; ui.exit(); })
-        : liveController,
+        : settings.test === 'posture'
+          ? postureController
+          : liveController,
     onExit: () => (finished && finished.length ? renderResults(app, finished, () => showStart()) : showStart()),
     onError: (msg) => showStart(msg),
   });

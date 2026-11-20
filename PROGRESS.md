@@ -159,3 +159,32 @@
 5. „CSV exportieren“: iOS fragt, wo die Datei hin soll (Dateien-App). In Numbers öffnen –
    eine Zeile pro Versuch.
 6. „Neuer Test“ fragt nach, dann ist alles weg.
+
+## M5 – Haltung frontal, erster Wurf ✅
+
+**Gebaut**
+- Neuer Test „Haltung frontal“ auf dem Startscreen.
+- Ablauf: Anleitung mit deutlichem Hinweis zur Handyneigung → „Los“ → Positionscheck →
+  3 s Countdown → 3 s Messung → Ergebnis: Schultern und Becken in ganzen Grad zur Waagerechten,
+  mit „links höher“/„rechts höher“/„waagerecht“. Keine Bewertung.
+- Optional „Geräteneigung anzeigen“ (iOS-Erlaubnis per Tipp): zeigt live, wie schief das Handy steht,
+  und im Ergebnis die mittlere Neigung während der Messung.
+
+**Getestet**
+- 109 Unit-Tests gesamt. Neu: Linienneigung (waagerecht, links/rechts höher, Becken unabhängig,
+  Spiegelung egal, schlecht sichtbar), Mittelung in ganzen Grad, „nicht gemessen“ bei zu wenigen
+  Frames, keine −0, Texte; Geräteneigung (Hochformat, flach, Querformat, Drehrichtungs-Konvention).
+- Headless-Browser mit synthetischer Person: Ablauf bis Ergebnis „0° · waagerecht“. ✔
+
+**Offen**
+- Geräteneigung auf echtem iPhone prüfen (Vorzeichen/Querformat).
+- Kein Export für diesen Test.
+
+**Testanleitung**
+1. Start → „Haltung frontal“ → „Kamera starten“.
+2. Tippe „Geräteneigung anzeigen“ und erlaube den Zugriff. Unter dem Warnhinweis steht z. B.
+   „Gerät seitlich geneigt: 3° … – bitte gerade stellen“. Richte das iPhone aus, bis 0–2° dasteht.
+3. „Los“, ruhig stehen. Countdown 3 – 2 – 1, dann 3 s Messung.
+4. Ergebnis: zwei große Gradzahlen (Schultern, Becken) mit „links höher“ o. ä.
+5. Gegenprobe: Kipp das iPhone absichtlich um ~5° und miss noch einmal – die Werte verschieben
+   sich um etwa diesen Betrag. Genau das sagt der Warnhinweis.

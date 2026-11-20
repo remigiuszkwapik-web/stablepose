@@ -131,3 +131,24 @@ jeweiligen Meilenstein.
   `localStorage.length` = 0). Neu laden oder „Neuer Test“ verwirft alles (mit Rückfrage).
 - **Dev-Schalter** `?synthetic&fast` (nur Dev-Server): 6 s Messung, 2 s Countdown, 2 Versuche pro
   Seite, künstliche Person – für schnelle Durchläufe im Browser.
+
+## M5 – Haltung frontal (erster Wurf)
+
+- **Messgröße:** Neigung der Linie linke ↔ rechte Schulter bzw. linke ↔ rechte Hüfte zur
+  Bild-Waagerechten, in ganzen Grad, Mittelwert über 3 s. Vorzeichen intern: positiv = linke Seite
+  höher; angezeigt wird der Betrag plus „links höher“ / „rechts höher“ / „waagerecht“. Keine Bewertung,
+  keine Diagnose-Wörter.
+- **Ablauf** nutzt denselben Zustandsautomaten wie der Einbeinstand (Positionscheck → 3 s Countdown
+  → 3 s Messung), ohne Startposition.
+- **Nur gültige Frames:** Frames, in denen der Positionscheck nicht passt, zählen als „nicht
+  messbar“. Ist weniger als die Hälfte der Frames messbar, steht „nicht gemessen“ statt eines Werts.
+- **Hüftpunkte ≠ Beckenkamm:** MediaPipe liefert Hüftgelenk-Schätzungen, keine Beckenkämme.
+  Die „Becken“-Linie ist also eine Näherung.
+- **Geräteneigung:** Optional per Tipp auf „Geräteneigung anzeigen“ (iOS fragt nach Erlaubnis).
+  Aus β/γ und der Bildschirmdrehung wird die Drehung in der Bildschirmebene (roll) und das Kippen
+  nach vorn/hinten (pitch) berechnet. Der Wert wird **angezeigt, aber nicht herausgerechnet** –
+  eine automatische Korrektur würde Genauigkeit vortäuschen, solange sie nicht am Gerät geprüft ist.
+  Roll wird auf ±90° normiert (für eine Linie zählt der Winkel modulo 180°); das macht die Anzeige
+  unempfindlich gegen die unterschiedliche Drehrichtungs-Konvention von `screen.orientation.angle`
+  im Querformat. Auf einem echten iPhone **noch nicht geprüft**.
+- **Kein Export** für „Haltung frontal“ (nicht im Briefing verlangt).
