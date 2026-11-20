@@ -55,3 +55,8 @@ export function fmtInt(x: number): string {
 export function fmtDec(x: number, digits = 2): string {
   return Number.isFinite(x) ? x.toFixed(digits) : '–';
 }
+
+/** Liste von Kindern ohne null/false (für bedingte Elemente). */
+export function nodes(...c: (Node | null | undefined | false)[]): Node[] {
+  return c.filter((x): x is Node => !!x);
+}

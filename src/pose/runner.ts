@@ -38,6 +38,7 @@ export class PoseRunner {
   private smoothWorld = new PointSmoother(config.pose.smoothingAlpha);
   private handle = 0;
   private fpsSamples: number[] = [];
+  private wantMask = false;
 
   constructor(private opts: RunnerOptions) {}
 
@@ -47,8 +48,15 @@ export class PoseRunner {
     const prev = this.loaded;
     this.loaded = await loadLandmarker(model);
     prev?.landmarker.close();
+    if (this.wantMask) await this.loaded.landmarker.setOptions({ outputSegmentationMasks: true });
     this.resetSmoothing();
     return this.loaded;
+  }
+
+  /** Segmentierungsmaske an/aus (nur für die Körpergröße nötig, kostet Rechenzeit). */
+  async setMask(on: boolean) {
+    this.wantMask = on;
+    await this.loaded?.landmarker.setOptions({ outputSegmentationMasks: on });
   }
 
   resetSmoothing() {
@@ -146,10 +154,13 @@ export class PoseRunner {
     }
     image = this.smoothImage.push(image, t);
     world = this.smoothWorld.push(world, t);
+    let mask: PoseFrame['mask'];
+    const m = this.wantMask ? result.segmentationMasks?.[0] : undefined;
+    if (m) mask = { data: m.getAsFloat32Array().slice(), width: m.width, height: m.height };
     result.close?.();
 
     this.opts.onFrame(
-      { t, width: w, height: h, image, world },
+      { t, width: w, height: h, image, world, mask },
       {
         fps: this.fpsAvg.value(),
         inferenceMs: this.infAvg.value(),

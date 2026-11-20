@@ -6,6 +6,7 @@ MediaPipe Pose Landmarker 33 Körperpunkte. Tests:
 
 - **Einbeinstand** mit Fehlerzählung nach den BESS-Kriterien (3 Versuche pro Seite, Export CSV/JSON)
 - **Haltung frontal** (erster Wurf): Neigung von Schulter- und Beckenlinie in Grad
+- **Körpergröße** (Prototyp): mit der Waagenplatte als Maßstab, Ergebnis mit geschätzter Spanne
 - **Live-Ansicht**: nur Skelett, ohne Messung
 
 > Kein Medizinprodukt. Keine Diagnosen. Die Werte dienen nur zur Orientierung fürs Training.
