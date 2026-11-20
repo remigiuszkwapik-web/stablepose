@@ -70,20 +70,28 @@ export const config = {
      */
     footDownMax: 0.04,
     /**
-     * [geschätzt] Hände an der Hüfte: Abstand Handgelenk → Hüftpunkt höchstens so viel (× Rumpflänge)
-     * UND Ellbogen gebeugt (siehe elbowBentMaxDeg). Hinweis: Der MediaPipe-Hüftpunkt liegt am
-     * Hüftgelenk, der Beckenkamm (wo die Hände liegen) etwas höher und weiter außen.
-     * Hängende Arme liegen ebenfalls nah am Hüftpunkt (~0,4–0,5) – deshalb der Ellbogen als zweites Merkmal.
+     * [geschätzt] Hände an der Hüfte: Abstand Handgelenk → Beckenkamm-Punkt höchstens so viel
+     * (× Rumpflänge) UND Ellbogen gebeugt (elbowBentMaxDeg).
+     * Der Beckenkamm-Punkt wird aus dem MediaPipe-Hüftpunkt geschätzt (der liegt am Hüftgelenk):
+     * crestUp × Rumpflänge nach oben und crestOut × Rumpflänge nach außen verschoben.
      */
     handsOnHipMax: 0.35,
-    /** [geschätzt] Ellbogenwinkel (Schulter–Ellbogen–Handgelenk) höchstens so viel Grad = Arm gebeugt (Hand an Hüfte). */
-    elbowBentMaxDeg: 140,
+    crestUp: 0.2,
+    crestOut: 0.1,
+    /** [geschätzt] Ellbogenwinkel (Schulter–Ellbogen–Handgelenk) höchstens so viel Grad = Arm gebeugt. */
+    elbowBentMaxDeg: 150,
     /**
      * [geschätzt] Fehler „Hände weg“: Abstand größer als so viel (× Rumpflänge) ODER Arm fast gestreckt
      * (Ellbogen über elbowStraightMinDeg). Hysterese zu den Werten oben, damit Wackeln nicht zählt.
      */
     handsOffHipMin: 0.5,
-    elbowStraightMinDeg: 155,
+    elbowStraightMinDeg: 165,
+    /**
+     * [geschätzt] Mindest-Sichtbarkeit für Handgelenk und Ellbogen. Bewusst niedriger als sonst:
+     * Liegt die Hand an der Hüfte, ist sie teils verdeckt und MediaPipe meldet niedrige visibility,
+     * die Position stimmt aber meist trotzdem.
+     */
+    armMinVisibility: 0.3,
     /** [BESS] Fehler „Hüfte über 30° gebeugt oder abgespreizt“. */
     hipAngleMaxDeg: 30,
     /**
