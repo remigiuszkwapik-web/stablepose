@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# wird beim Build aus node_modules kopiert
+public/mediapipe/
+*.log
+.DS_Store
+.vite/
+coverage/
