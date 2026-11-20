@@ -130,3 +130,32 @@
 6. Am Ende siehst du die Zahl groß und darunter je Fehlertyp.
 7. Zum Einstellen: Debug öffnen. Dort siehst du live die Winkel und welche Bedingung gerade
    „prüft …“ oder „FEHLER“ ist.
+
+## M4 – Mehrere Versuche und Ergebnis ✅
+
+**Gebaut**
+- 3 Versuche pro Seite (`config.singleLeg.trialsPerSide`), dazwischen Pause mit Kurzergebnis,
+  „Weiter“ und „Wiederholen“.
+- Ergebnis-Screen: Mittelwert je Seite groß (ganze Zahl), Fehler je Versuch, Unterschied
+  links/rechts (ohne Bewertung), Hinweis „Kein medizinischer Test …“, aufklappbare Tabelle mit
+  Fehlern je Typ.
+- Export als CSV und JSON per Download – nur lokal. Felder: Datum, Standbein, Versuch, Fehlerzahl,
+  Fehler je Typ, Dauer, Modell, fps-Durchschnitt (+ Zeit in Position, nicht auswertbar).
+- Nichts wird gespeichert; kein localStorage.
+
+**Getestet**
+- 93 Unit-Tests gesamt. Neu: Runden, Mittelwert je Seite, fehlende Seite, Unterschied, CSV
+  (Kopf, Zeilen, Semikolon, BOM, leere fps), JSON (Zusammenfassung, Konfiguration), Dateiname.
+- Headless-Browser, synthetische Person, kompletter Durchlauf 2 × links + 2 × rechts →
+  Ergebnis-Screen → CSV- und JSON-Download geprüft, localStorage leer. ✔
+
+**Testanleitung**
+1. Einbeinstand mit Standbein „Links“ starten, Versuch machen.
+2. Nach 20 s: „Kurze Pause“, Fehlerzahl groß, darunter je Typ. Tippe „Weiter“ → Anleitung
+   „Versuch 2 von 3“ → „Los“.
+3. Nach Versuch 3: „Weiter: Standbein Rechts“. Drei Versuche rechts.
+4. „Ergebnis ansehen“: zwei Karten Links/Rechts mit Mittelwert und den drei Versuchen,
+   darunter der Unterschied.
+5. „CSV exportieren“: iOS fragt, wo die Datei hin soll (Dateien-App). In Numbers öffnen –
+   eine Zeile pro Versuch.
+6. „Neuer Test“ fragt nach, dann ist alles weg.

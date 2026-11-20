@@ -109,3 +109,25 @@ jeweiligen Meilenstein.
 - **Synthetische Testperson** (`src/dev/syntheticPose.ts`): Wird für Unit-Tests genutzt und im
   Dev-Server mit `?synthetic` statt der Kamera. Damit lässt sich der ganze Ablauf ohne Person
   durchklicken. Im Produktions-Build ist sie nicht enthalten.
+
+## M4 – Mehrere Versuche und Ergebnis
+
+- **Reihenfolge:** Erst alle Versuche (Standard 3) auf dem zuerst gewählten Bein, dann die andere
+  Seite. Nach jedem Versuch eine Pause mit Kurzergebnis und „Weiter“. „Wiederholen“ verwirft den
+  letzten Versuch (z. B. wenn jemand durchs Bild läuft). „Nur diese Seite – zum Ergebnis“ ist möglich.
+- **„Beenden“ mitten im Test:** Sind schon Versuche fertig, erscheint trotzdem der Ergebnis-Screen,
+  damit nichts verloren geht.
+- **Kamera aus beim Ergebnis:** Der Ergebnis-Screen ist ein normaler Screen (hell/dunkel nach
+  System). Die Kamera wird dafür gestoppt.
+- **Mittelwert je Seite** = arithmetisches Mittel der Fehler, kaufmännisch auf ganze Zahl gerundet.
+  „Unterschied links/rechts“ = Betrag der Differenz der gerundeten Mittelwerte, ohne Bewertung.
+- **CSV:** Semikolon als Trenner und UTF-8-BOM, damit deutsches Excel/Numbers die Datei mit
+  Umlauten direkt richtig öffnet. Eine Zeile pro Versuch. Zusätzliche Spalten über das Briefing
+  hinaus: Zeit in Position, Anteil nicht auswertbar, „Position unter 5 s gehalten“.
+- **JSON:** enthält zusätzlich die verwendeten Schwellenwerte (`config`), damit spätere Exporte mit
+  geänderten Schwellen vergleichbar bleiben.
+- **Datum** in der CSV als lokale Zeit „JJJJ-MM-TT HH:MM“, im JSON als ISO-8601 (UTC).
+- **Kein Speichern:** Messdaten nur im Arbeitsspeicher. Kein localStorage (im Browser-Test geprüft:
+  `localStorage.length` = 0). Neu laden oder „Neuer Test“ verwirft alles (mit Rückfrage).
+- **Dev-Schalter** `?synthetic&fast` (nur Dev-Server): 6 s Messung, 2 s Countdown, 2 Versuche pro
+  Seite, künstliche Person – für schnelle Durchläufe im Browser.

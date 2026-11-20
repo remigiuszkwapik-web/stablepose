@@ -170,7 +170,8 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
     const t0 = performance.now();
     const timer = window.setInterval(() => {
       if (disposed) return window.clearInterval(timer);
-      const frame = syntheticScript(performance.now() - t0);
+      const stand = (window as unknown as { __standSide?: 'left' | 'right' }).__standSide;
+      const frame = syntheticScript(performance.now() - t0, stand);
       drawSkeleton(canvas, frame, { highlight: highlight ?? undefined });
       const stats = { fps: 30, inferenceMs: 0, model: 'synthetisch', delegate: '–' };
       controller.onFrame(frame, stats);
