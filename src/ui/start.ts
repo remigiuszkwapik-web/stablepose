@@ -12,7 +12,7 @@ export interface StartSettings {
 }
 
 /** Einstellungen bleiben nur im Speicher (kein localStorage). */
-export const settings: StartSettings = { test: 'live', facing: 'user', model: config.pose.defaultModel };
+export const settings: StartSettings = { test: 'singleLeg', facing: 'user', model: config.pose.defaultModel };
 
 export interface StartHandlers {
   tests: { value: TestKind; label: string; description: string }[];

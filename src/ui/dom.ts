@@ -50,3 +50,8 @@ export function segmented<T extends string>(
 export function fmtInt(x: number): string {
   return Number.isFinite(x) ? String(Math.round(x) === 0 ? 0 : Math.round(x)) : '–';
 }
+
+/** Dezimalzahl für die Debug-Anzeige. NaN → „–“. */
+export function fmtDec(x: number, digits = 2): string {
+  return Number.isFinite(x) ? x.toFixed(digits) : '–';
+}

@@ -47,3 +47,27 @@ jeweiligen Meilenstein.
   für den Pose Landmarker nichts, weil er intern ohnehin klein rechnet.
 - **Einstellungen** (Kamera, Modell) werden nur im Arbeitsspeicher gehalten, nicht im
   localStorage – nach Neuladen wieder Standard.
+
+## M2 – Positionscheck und Ablauf
+
+- **Positionscheck** (`src/analysis/position.ts`) prüft in dieser Reihenfolge und zeigt immer nur
+  die wichtigste Anweisung: Person da? → Kopf und Füße im Bild (beides fehlt = „Geh einen Schritt
+  zurück“) → groß genug („Komm einen Schritt näher“) → mittig → frontal → Körperpunkte gut sichtbar.
+- **Scheitel** liegt nicht als Punkt vor. Geschätzt als Nase minus 0,6 × Abstand Nase–Schultermitte.
+- **Frontal** = Schulterbreite und Hüftbreite groß genug im Verhältnis zur Rumpflänge **und**
+  linke Schulter/Hüfte liegt im Kamerabild rechts. Damit wird auch „Rücken zur Kamera“ erkannt.
+  Ein gespiegelt gespeichertes Selfie-Video sieht für das Modell aber genauso aus wie ein normales –
+  das kann man nicht automatisch erkennen (deshalb der Schalter „Gespiegelt“, ein Test hält das fest).
+- **Ablauf:** Positionscheck muss 1 s ununterbrochen passen → 5 s Countdown (kurzes Verlieren der
+  Position < 1 s wird toleriert, länger → zurück zum Check) → Warten auf Startposition → 20 s Messung.
+  Die Messung läuft nach dem Start bis zum Ende durch, auch wenn die Person das Bein absetzt –
+  das ist dann ein Fehler (M3), kein Abbruch. So ist es auch beim BESS.
+- **Startposition** = Spielfuß mindestens 0,10 Beinlängen über dem Standfuß **und** beide Hände an
+  der Hüfte, 0,5 s lang gehalten. Der Timer startet erst dann (BESS: Fehler zählen erst ab korrekter
+  Testposition).
+- **Hände an der Hüfte = zwei Merkmale:** Handgelenk nah am Hüftpunkt (≤ 0,35 Rumpflängen) **und**
+  Ellbogen gebeugt (≤ 140°). Nur der Abstand reicht nicht: Bei hängenden Armen liegt das Handgelenk
+  ebenfalls nah am Hüftpunkt (ca. 0,4–0,5 Rumpflängen). Beim Erstellen der Testdaten aufgefallen.
+- **Fuß-Höhe** = tiefster sichtbarer Punkt (Knöchel, Ferse, Zehen) je Fuß, relativ zur Beinlänge
+  (Hüfte–Knöchel des Standbeins). Unabhängig vom Abstand zur Kamera.
+- **Video-Modus:** Bei „Los“ springt das Video an den Anfang, damit jeder Durchlauf gleich ist.

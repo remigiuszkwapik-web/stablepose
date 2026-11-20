@@ -70,13 +70,20 @@ export const config = {
      */
     footDownMax: 0.04,
     /**
-     * [geschätzt] Hände an der Hüfte: Abstand Handgelenk → Hüftpunkt höchstens so viel (× Rumpflänge).
-     * Hinweis: Der MediaPipe-Hüftpunkt liegt am Hüftgelenk, der Beckenkamm (wo die Hände liegen)
-     * etwas höher und weiter außen. Daher der relativ großzügige Wert.
+     * [geschätzt] Hände an der Hüfte: Abstand Handgelenk → Hüftpunkt höchstens so viel (× Rumpflänge)
+     * UND Ellbogen gebeugt (siehe elbowBentMaxDeg). Hinweis: Der MediaPipe-Hüftpunkt liegt am
+     * Hüftgelenk, der Beckenkamm (wo die Hände liegen) etwas höher und weiter außen.
+     * Hängende Arme liegen ebenfalls nah am Hüftpunkt (~0,4–0,5) – deshalb der Ellbogen als zweites Merkmal.
      */
-    handsOnHipMax: 0.45,
-    /** [geschätzt] Fehler „Hände weg“: Abstand größer als so viel (× Rumpflänge). Hysterese zu handsOnHipMax. */
-    handsOffHipMin: 0.6,
+    handsOnHipMax: 0.35,
+    /** [geschätzt] Ellbogenwinkel (Schulter–Ellbogen–Handgelenk) höchstens so viel Grad = Arm gebeugt (Hand an Hüfte). */
+    elbowBentMaxDeg: 140,
+    /**
+     * [geschätzt] Fehler „Hände weg“: Abstand größer als so viel (× Rumpflänge) ODER Arm fast gestreckt
+     * (Ellbogen über elbowStraightMinDeg). Hysterese zu den Werten oben, damit Wackeln nicht zählt.
+     */
+    handsOffHipMin: 0.5,
+    elbowStraightMinDeg: 155,
     /** [BESS] Fehler „Hüfte über 30° gebeugt oder abgespreizt“. */
     hipAngleMaxDeg: 30,
     /**

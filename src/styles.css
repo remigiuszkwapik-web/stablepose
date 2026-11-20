@@ -198,14 +198,14 @@ button { font: inherit; color: inherit; }
 video.media { object-fit: fill; background: #000; }
 .overlay { pointer-events: none; }
 .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: var(--mono); background: rgba(18, 19, 20, 0.7); }
-.big {
+.bigview {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   pointer-events: none;
   color: var(--text);
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }
-.big:empty { display: none; }
+.bigview:empty { display: none; }
 .big-number {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
@@ -216,7 +216,7 @@ video.media { object-fit: fill; background: #000; }
 }
 .big-label { font-size: clamp(20px, 4.5vmin, 40px); font-weight: 500; }
 .big-sub { font-family: var(--mono); font-size: clamp(18px, 4vmin, 34px); color: var(--muted); }
-.big.signal .big-number { color: var(--signal); }
+.bigview.signal .big-number { color: var(--signal); }
 .video-tools {
   grid-area: tools;
   display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;

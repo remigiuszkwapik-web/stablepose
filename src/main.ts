@@ -1,12 +1,15 @@
 import './styles.css';
+import { config } from './config';
 import { renderLicenses } from './ui/licenses';
 import { liveController } from './ui/live';
+import { singleLegController } from './ui/singleLeg';
 import { openSession, type SourceRequest } from './ui/session';
 import { renderStart, settings, type StartHandlers } from './ui/start';
 
 const app = document.getElementById('app')!;
 
 const TESTS: StartHandlers['tests'] = [
+  { value: 'singleLeg', label: 'Einbeinstand', description: `Gleichgewicht auf einem Bein, ${config.singleLeg.durationS} s` },
   { value: 'live', label: 'Live-Ansicht', description: 'Nur Skelett anzeigen, ohne Messung' },
 ];
 
@@ -25,8 +28,8 @@ function start(source: SourceRequest) {
     root: app,
     source,
     model: settings.model,
-    title: 'Live-Ansicht',
-    controller: liveController,
+    title: settings.test === 'singleLeg' ? 'Einbeinstand' : 'Live-Ansicht',
+    controller: settings.test === 'singleLeg' ? singleLegController : liveController,
     onExit: () => showStart(),
     onError: (msg) => showStart(msg),
   });
