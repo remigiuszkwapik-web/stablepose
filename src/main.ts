@@ -17,7 +17,8 @@ function showStart(error?: string) {
   renderStart(app, {
     tests: TESTS,
     error,
-    onCamera: () => start({ kind: 'camera', facing: settings.facing }),
+    onCamera: () =>
+      start(import.meta.env.DEV && location.search.includes('synthetic') ? { kind: 'synthetic' } : { kind: 'camera', facing: settings.facing }),
     onFile: (file) => start({ kind: 'file', file }),
     onLicenses: () => renderLicenses(app, () => showStart()),
   });

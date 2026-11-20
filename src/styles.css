@@ -215,7 +215,7 @@ video.media { object-fit: fill; background: #000; }
   letter-spacing: -0.04em;
 }
 .big-label { font-size: clamp(20px, 4.5vmin, 40px); font-weight: 500; }
-.big-sub { font-family: var(--mono); font-size: clamp(18px, 4vmin, 34px); color: var(--muted); }
+.big-sub { font-size: clamp(22px, 5vmin, 44px); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
 .bigview.signal .big-number { color: var(--signal); }
 .video-tools {
   grid-area: tools;
@@ -274,3 +274,12 @@ video.media { object-fit: fill; background: #000; }
   .panel { border-top: 0; border-left: 1px solid var(--line); max-height: none; }
   .panel:empty { display: flex; }
 }
+
+/* Ergebnisse */
+.trial-summary { display: flex; flex-direction: column; gap: 10px; }
+.stat { display: flex; align-items: baseline; gap: 10px; }
+.stat-value { font-size: clamp(48px, 10vmin, 88px); font-weight: 500; line-height: 1; letter-spacing: -0.03em; }
+.stat-label { color: var(--muted); font-size: 18px; }
+.kv { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.kv li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.kv li:last-child { border-bottom: 0; }

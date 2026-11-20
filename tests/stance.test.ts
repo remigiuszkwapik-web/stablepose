@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { hipAngles, isStartPose, stanceMetrics, startPoseHint, handOffHip } from '../src/analysis/stance';
 import { swapLeftRight } from '../src/analysis/frame';
-import { makePose } from './fixtures/pose';
+import { makePose } from '../src/dev/syntheticPose';
 
 describe('Startposition Einbeinstand', () => {
   it('Bein oben + Hände an Hüfte → Startposition', () => {

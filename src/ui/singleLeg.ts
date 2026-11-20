@@ -1,4 +1,6 @@
+import { ERROR_LABELS, finishBess, frameConditions, highlightPoints, initBess, liveErrors, stepBess, type BessState, type ConditionType, type TrialErrors } from '../analysis/bess';
 import { checkPosition } from '../analysis/position';
+import { mean } from '../analysis/smoothing';
 import { countdownLeft, defaultFlowConfig, initFlow, measureLeft, stepFlow, type FlowState } from '../analysis/singleLegFlow';
 import { isStartPose, stanceMetrics, startPoseHint, type StanceMetrics } from '../analysis/stance';
 import type { PoseFrame, Side } from '../analysis/types';
@@ -18,6 +20,9 @@ export function singleLegController(ui: SessionUI): Controller {
   let flow: FlowState | null = null;
   const flowCfg = defaultFlowConfig();
   let lastBig = '';
+  let bess: BessState | null = null;
+  let baselineSamples: number[] = [];
+  let baseline: { standHeelToe: number } | null = null;
 
   const setBig = (html: { number?: string; label?: string; sub?: string; tone?: 'signal' } | null) => {
     const key = JSON.stringify(html);
@@ -79,6 +84,10 @@ export function singleLegController(ui: SessionUI): Controller {
   function startRun() {
     step = 'run';
     flow = null; // wird mit dem ersten Frame gestartet
+    bess = null;
+    baseline = null;
+    baselineSamples = [];
+    ui.setHighlight(null);
     if (ui.isFile) ui.restartVideo();
     ui.panel.replaceChildren(
       h('p', { class: 'panel-text' }, `Standbein ${sideLabel(stand)} · Der Timer startet, sobald du richtig stehst.`),
@@ -89,10 +98,12 @@ export function singleLegController(ui: SessionUI): Controller {
   function showTrialDone() {
     step = 'trialDone';
     setBig(null);
+    ui.setHighlight(null);
     ui.setHint('Versuch beendet', 'ok');
+    const r = bess ? finishBess(bess) : null;
     ui.panel.replaceChildren(
       h('h2', {}, 'Fertig'),
-      h('p', { class: 'panel-text' }, `Standbein ${sideLabel(stand)} · ${config.singleLeg.durationS} s gemessen.`),
+      r ? trialSummary(r) : h('p', { class: 'panel-text' }, 'Keine Messdaten.'),
       h(
         'div',
         { class: 'row' },
@@ -104,7 +115,7 @@ export function singleLegController(ui: SessionUI): Controller {
 
   function debugRows(m: StanceMetrics, frame: PoseFrame): [string, string, boolean?][] {
     const pos = checkPosition(frame);
-    return [
+    const rows: [string, string, boolean?][] = [
       ['Phase', flow?.phase ?? step],
       ['Position', pos.ok ? 'ok' : pos.issues.join(', '), !pos.ok],
       ['Schulter/Rumpf', fmtDec(pos.metrics.shoulderRatio)],
@@ -113,8 +124,24 @@ export function singleLegController(ui: SessionUI): Controller {
       ['Hand L→Hüfte (×Rumpf)', fmtDec(m.wristHip.left)],
       ['Hand R→Hüfte (×Rumpf)', fmtDec(m.wristHip.right)],
       ['Ellbogen L / R', `${fmtInt(m.elbow.left)}° / ${fmtInt(m.elbow.right)}°`],
+      ['Hüfte Beugung', `${fmtInt(m.hipFlexionDeg)}°`, m.hipFlexionDeg > config.singleLeg.hipAngleMaxDeg],
+      ['Hüfte Abspreizung', `${fmtInt(m.hipAbductionDeg)}°`, m.hipAbductionDeg > config.singleLeg.hipAngleMaxDeg],
+      ['Ferse–Zehe Δ (×Bein)', baseline ? fmtDec(m.standHeelToe - baseline.standHeelToe, 3) : 'noch kein Start'],
       ['Startposition', isStartPose(m) ? 'ja' : 'nein'],
     ];
+    if (bess) {
+      const raw = bess.raw;
+      const state = (k: ConditionType) => (bess!.active.includes(k) ? 'FEHLER' : raw[k] === true ? 'prüft …' : raw[k] === null ? 'nicht messbar' : '–');
+      rows.push(
+        ['Hände weg', state('handsOff'), raw.handsOff === true],
+        ['Fuß abgesetzt', state('footDown'), raw.footDown === true],
+        ['Hüfte > 30°', state('hipAngle'), raw.hipAngle === true],
+        ['Ferse/Vorfuß (exp.)', state('standFootLift'), raw.standFootLift === true],
+        ['Fehler laufend', bess.episode ? `seit ${fmtDec((bess.lastT! - bess.episode.start) / 1000, 1)} s` : 'nein', !!bess.episode],
+        ['Fehler gezählt', `${bess.total} (exp. ${bess.experimental})`],
+      );
+    }
+    return rows;
   }
 
   showSide();
@@ -145,14 +172,45 @@ export function singleLegController(ui: SessionUI): Controller {
           setBig({ label: hint ?? 'Halten …' });
           break;
         }
-        case 'measuring':
-          ui.setHint('Messung läuft – ruhig stehen', 'info');
-          setBig({ number: String(measureLeft(flow, flowCfg)), label: 'Sekunden' });
+        case 'measuring': {
+          bess ??= initBess();
+          // Ausgangswert Ferse/Zehe: Mittel der ersten 500 ms der Messung (experimentell).
+          if (!baseline) {
+            if (Number.isFinite(m.standHeelToe)) baselineSamples.push(m.standHeelToe);
+            if (flow.elapsedMs >= 500) baseline = { standHeelToe: mean(baselineSamples) };
+          }
+          bess = stepBess(bess, frame.t, frameConditions(m, baseline));
+          const active = bess.active.filter((k) => k !== 'standFootLift' || config.singleLeg.countExperimentalInTotal);
+          ui.setHighlight(active.length ? highlightPoints(active, stand) : null);
+          ui.setHint(active.length ? ERROR_LABELS[active[0]] : 'Messung läuft – ruhig stehen', active.length ? 'warn' : 'info');
+          const n = liveErrors(bess);
+          setBig({ number: String(measureLeft(flow, flowCfg)), label: 'Sekunden', sub: `Fehler ${n}` });
           break;
+        }
         case 'done':
           showTrialDone();
           break;
       }
     },
   };
+}
+
+/** Kurze Zusammenfassung eines Versuchs: große Fehlerzahl, Details klein darunter. */
+export function trialSummary(r: TrialErrors): HTMLElement {
+  const details = (['handsOff', 'footDown', 'hipAngle', 'outOfPosition'] as const)
+    .filter((k) => r.byType[k] > 0)
+    .map((k) => h('li', {}, h('span', {}, ERROR_LABELS[k]), h('span', { class: 'num' }, String(r.byType[k]))));
+  return h(
+    'div',
+    { class: 'trial-summary' },
+    h('div', { class: 'stat' }, h('span', { class: 'stat-value num' }, String(r.errors)), h('span', { class: 'stat-label' }, r.errors === 1 ? 'Fehler' : 'Fehler')),
+    details.length ? h('ul', { class: 'kv' }, ...details) : h('p', { class: 'panel-text' }, 'Keine Fehler erkannt.'),
+    h('ul', { class: 'kv muted small' },
+      h('li', {}, h('span', {}, 'Ferse/Vorfuß angehoben (experimentell, nicht mitgezählt)'), h('span', { class: 'num' }, String(r.experimental))),
+      h('li', {}, h('span', {}, 'Augen geöffnet'), h('span', {}, 'nicht gemessen')),
+    ),
+    r.failedToHold ? h('p', { class: 'notice warn' }, `Position kürzer als ${config.singleLeg.minInPositionS} s gehalten – nach BESS-Regel ${config.singleLeg.maxErrors} Fehler.`) : null,
+    r.rawErrors > config.singleLeg.maxErrors && !r.failedToHold ? h('p', { class: 'muted small' }, `${r.rawErrors} erkannt, gezählt werden höchstens ${config.singleLeg.maxErrors}.`) : null,
+    r.unmeasurableShare > 0.2 ? h('p', { class: 'notice warn' }, `Die Kamera konnte dich ${Math.round(r.unmeasurableShare * 100)} % der Zeit nicht sicher erkennen. Das Ergebnis ist unsicher.`) : null,
+  );
 }

@@ -1,6 +1,6 @@
-import { L, SIDE } from '../../src/analysis/landmarks';
-import { swapLeftRight } from '../../src/analysis/frame';
-import type { PoseFrame, Pt, Side } from '../../src/analysis/types';
+import { L, SIDE } from '../analysis/landmarks';
+import { swapLeftRight } from '../analysis/frame';
+import type { PoseFrame, Pt, Side } from '../analysis/types';
 
 /**
  * Synthetische Person, frontal zur Kamera, im Hochformat 720 × 1280.
@@ -133,3 +133,17 @@ export function makePose(o: PoseOpts = {}): PoseFrame {
 }
 
 export { TORSO, LEG };
+
+/**
+ * Drehbuch einer synthetischen Person für Entwicklung und Browser-Tests (nur mit ?synthetic im
+ * Dev-Server). t = ms seit Start. Standbein links. Ablauf passt zum Einbeinstand-Ablauf:
+ * 0–6,5 s normal stehen, dann Startposition; Fuß kurz ab bei 12–13 s; Hand weg bei 18–18,8 s.
+ */
+export function syntheticScript(t: number): PoseFrame {
+  const s = (t % 32000) / 1000;
+  const sway = Math.sin(t / 700) * 4;
+  if (s < 6.5) return makePose({ t, hands: 'down', dx: sway });
+  const footDown = s >= 12 && s < 13;
+  const handOff = s >= 18 && s < 18.8;
+  return makePose({ t, stand: 'left', lift: footDown ? 0 : 0.15, hands: handOff ? 'rightOff' : 'hips', flexDeg: 15, abdDeg: 5, dx: sway });
+}

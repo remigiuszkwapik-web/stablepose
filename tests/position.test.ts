@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { checkPosition } from '../src/analysis/position';
 import { L } from '../src/analysis/landmarks';
-import { makePose } from './fixtures/pose';
+import { makePose } from '../src/dev/syntheticPose';
 
 describe('Positionscheck', () => {
   it('frontal, ganz im Bild → ok', () => {

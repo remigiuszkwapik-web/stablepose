@@ -92,3 +92,41 @@
 6. Danach steht groß, was noch fehlt. Erst wenn du die Hände an der Hüfte hast und das rechte
    Bein angehoben ist, startet der Timer: große Zahl 20, 19, … 0.
 7. Danach „Fertig“ mit „Noch einmal“ oder „Anderes Bein“.
+
+## M3 – Fehlerzählung nach BESS-Kriterien ✅
+
+**Gebaut**
+- `src/analysis/bess.ts`: Fehlerbedingungen pro Frame + Zähler mit Entprellung, „gleichzeitig
+  zählt einmal“, Zusatzfehler bei > 5 s aus der Position, Deckel bei 10, „unter 5 s gehalten = 10“.
+- Erkannt werden: Hände von der Hüfte, Fuß abgesetzt/Schritt, Hüfte > 30° gebeugt oder
+  abgespreizt, > 5 s aus der Position. Ferse/Vorfuß **experimentell, getrennt** ausgewiesen.
+  „Augen geöffnet“ = nicht gemessen.
+- Live: Timer groß, darunter „Fehler n“; aktiver Fehler oben in Rot; betroffene Gelenke rot im Skelett.
+- Debug-Leiste: Hüftbeugung/-abspreizung in Grad, Ferse–Zehe-Änderung, für jeden Fehlertyp
+  „–“ / „prüft …“ (Entprellung läuft) / „FEHLER“ / „nicht messbar“, laufender Fehler seit x s.
+- Ergebnis nach dem Versuch: große Fehlerzahl, Aufschlüsselung je Typ, Hinweise (unsicher,
+  Deckel, nicht gehalten).
+- Dev-Server: `https://localhost:5173/?synthetic` → „Kamera starten“ spielt eine künstliche
+  Person ab (Fuß ab bei ~12 s, Hand weg bei ~18 s). Nur zum Ausprobieren des Ablaufs.
+
+**Getestet**
+- 85 Unit-Tests gesamt. Neu: je Fehlertyp „Fehler“ und „kein Fehler“ aus synthetischen
+  Körperpunkten, „nicht messbar“-Fälle, Entprellung (150 ms zählt nicht, 400 ms zählt),
+  gleichzeitig = 1, überlappend = 1, getrennt = 2, kurze Lücke = 1, > 5 s = +1, 4 s = kein
+  Zusatz, Deckel 10, „unter 5 s gehalten“ = 10, nicht messbare Zeit, experimentell getrennt
+  bzw. per Config eingerechnet, Ende-zu-Ende mit synthetischen Frames.
+- Headless-Browser mit synthetischer Person: Ablauf bis „Fertig“ → 2 Fehler (Hand, Fuß). ✔
+
+**Offen**
+- Schwellen mit echten Videos einstellen (siehe oben in der Zusammenfassung).
+
+**Testanleitung**
+1. Einbeinstand starten wie in M2. Während der 20 s:
+2. Setz kurz den Fuß ab (ca. 1 s). Oben erscheint rot „Fuß abgesetzt / Schritt“, das Bein wird im
+   Skelett rot, unter dem Timer steht „Fehler 1“.
+3. Nimm eine Hand von der Hüfte → „Hände von der Hüfte“, „Fehler 2“.
+4. Nimm Hand weg **und** setz den Fuß gleichzeitig ab → zählt nur einmal.
+5. Bleib 6 s mit abgesetztem Fuß stehen → zählt zwei (Fehler + „länger als 5 s“).
+6. Am Ende siehst du die Zahl groß und darunter je Fehlertyp.
+7. Zum Einstellen: Debug öffnen. Dort siehst du live die Winkel und welche Bedingung gerade
+   „prüft …“ oder „FEHLER“ ist.

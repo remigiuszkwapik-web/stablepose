@@ -7,7 +7,7 @@ import { h } from './dom';
 import { drawSkeleton } from './overlay';
 import { WakeLock } from './wakelock';
 
-export type SourceRequest = { kind: 'camera'; facing: Facing } | { kind: 'file'; file: File };
+export type SourceRequest = { kind: 'camera'; facing: Facing } | { kind: 'file'; file: File } | { kind: 'synthetic' };
 
 /** Was ein Test (Controller) von der Kameraansicht bekommt. */
 export interface SessionUI {
@@ -161,12 +161,30 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
   }
   exitBtn.addEventListener('click', cleanup);
 
+  if (import.meta.env.DEV && o.source.kind === 'synthetic') {
+    // Nur Entwicklung: künstliche Person statt Kamera (siehe src/dev/syntheticPose.ts).
+    const { syntheticScript } = await import('../dev/syntheticPose');
+    status.remove();
+    mediaBox.style.width = '360px';
+    mediaBox.style.height = '640px';
+    const t0 = performance.now();
+    const timer = window.setInterval(() => {
+      if (disposed) return window.clearInterval(timer);
+      const frame = syntheticScript(performance.now() - t0);
+      drawSkeleton(canvas, frame, { highlight: highlight ?? undefined });
+      const stats = { fps: 30, inferenceMs: 0, model: 'synthetisch', delegate: '–' };
+      controller.onFrame(frame, stats);
+      debug.update(frame, stats, debugRows);
+    }, 33);
+    return cleanup;
+  }
+
   try {
     // Kamera zuerst (Tipp-Geste noch „frisch“ für iOS), dann Modell.
     if (o.source.kind === 'camera') {
       source = await startCamera(video, o.source.facing);
       mediaBox.classList.toggle('mirrored', o.source.facing === 'user'); // nur Anzeige spiegeln
-    } else {
+    } else if (o.source.kind === 'file') {
       source = await startFile(video, o.source.file);
     }
     fit();
