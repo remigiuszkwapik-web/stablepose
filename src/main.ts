@@ -19,7 +19,7 @@ if (import.meta.env.DEV && location.search.includes('fast')) {
 
 const TESTS: StartHandlers['tests'] = [
   { value: 'singleLeg', label: 'Einbeinstand', description: `Gleichgewicht auf einem Bein, ${config.singleLeg.durationS} s` },
-  { value: 'posture', label: 'Haltung frontal', description: `Schulter- und Beckenlinie, ${config.posture.durationS} s` },
+  { value: 'posture', label: 'Haltung', description: 'Vorne, seitlich und hinten, je 3 s' },
   { value: 'height', label: 'Körpergröße', description: 'Mit der Waagenplatte als Maßstab' },
   { value: 'live', label: 'Live-Ansicht', description: 'Nur Skelett anzeigen, ohne Messung' },
 ];
@@ -42,7 +42,7 @@ function start(source: SourceRequest) {
     root: app,
     source,
     model: settings.model,
-    title: { singleLeg: 'Einbeinstand', posture: 'Haltung frontal', height: 'Körpergröße', live: 'Live-Ansicht' }[settings.test],
+    title: { singleLeg: 'Einbeinstand', posture: 'Haltung', height: 'Körpergröße', live: 'Live-Ansicht' }[settings.test],
     controller:
       settings.test === 'singleLeg'
         ? (ui) => singleLegController(ui, (records) => { finished = records; ui.exit(); })

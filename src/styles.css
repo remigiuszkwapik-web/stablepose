@@ -312,3 +312,7 @@ details.card[open] { padding-bottom: 16px; }
 .unit { color: var(--muted); font-size: 14px; }
 .stat { flex-wrap: wrap; }
 .stat-value { white-space: nowrap; }
+.kv-val { display: flex; flex-direction: column; align-items: flex-end; text-align: right; flex-shrink: 0; }
+.kv-deg { font-size: 20px; line-height: 1.2; }
+.kv-dir { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.panel details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }

@@ -13,6 +13,7 @@
 | M4 Versuche + Ergebnis | ✅ fertig | 3 × pro Seite, Ergebnis-Screen, CSV/JSON-Export |
 | M5 Haltung frontal | ✅ fertig (erster Wurf) | Schulter-/Beckenlinie in Grad, Geräteneigung optional |
 | M6 Körpergröße mit Platte | ✅ Prototyp | Ecken antippen (Lupe), Neigung per Sensor, Ergebnis mit Spanne |
+| M7 Haltung 3 Ansichten | ✅ | vorne, seitlich, hinten + Übersicht der Abweichungen |
 
 Bei jedem Meilenstein waren `npm run build` und `npm test` grün (am Ende **109 Tests**).
 Zusätzlich habe ich jeden Ablauf im Headless-Browser durchgeklickt – mit einem Beispielvideo als
@@ -328,3 +329,28 @@ Frontkamera-Videos ggf. „Gespiegelt“ einschalten, wenn links/rechts vertausc
    neu einmessen und messen. Bleibt der Wert ähnlich → Vorzeichen stimmt. Springt er um ~10 cm →
    Vorzeichen falsch, bitte melden.
 7. Vergleich mit dem Stadiometer notieren (Debug-Werte helfen beim Einstellen).
+
+## M7 – Haltung vorne, seitlich, hinten ✅
+
+**Gebaut**
+- Test „Haltung“ (ersetzt „Haltung frontal“): drei Ansichten nacheinander, je 3 s, überspringbar.
+- Vorne/hinten: Schulterlinie, Beckenlinie, Kopf (Ohrlinie), Rumpfachse. Seitlich: Ohr zur Schulter,
+  Schulter zur Hüfte, Hüfte zum Knöchel, Knie zur Linie Hüfte–Knöchel.
+- Übersicht: alle Abweichungen ab 1°, größte zuerst, Gradzahl groß, Richtung klein darunter.
+- Positionscheck kennt die Ansicht („Dreh dich seitlich zur Kamera“, „Dreh der Kamera den Rücken zu“).
+- Rückansicht: vertauschte Seiten von MediaPipe werden automatisch korrigiert.
+
+**Getestet**
+- 147 Unit-Tests gesamt. Neu: Positionscheck je Ansicht, Seitansicht (Blick nach links/rechts,
+  linke/rechte Seite zur Kamera, Kopf/Rumpf/Bein-Winkel, Knie davor/dahinter), Rückansicht inkl.
+  automatischer Seitenkorrektur, Rumpfneigung vorne/hinten, Übersicht, Texte ohne Bewertungswörter.
+- Headless-Browser mit synthetischer Person durch alle drei Ansichten: gemessene Werte = Vorgaben. ✔
+
+**Testanleitung**
+1. Start → „Haltung“ → „Kamera starten“. Optional „Geräteneigung anzeigen“, Handy gerade stellen.
+2. **Vorne:** „Los“, ruhig stehen → Werte für Schulter, Becken, Kopf, Rumpf.
+3. „Weiter: Seitlich“ → 90° drehen → „Los“. Gegenprobe: Kopf bewusst vorschieben → „Ohr zur
+   Schulter“ wird größer, „nach vorn“.
+4. „Weiter: Hinten“ → Rücken zur Kamera → „Los“. Gegenprobe: linke Schulter hochziehen → vorne
+   und hinten sollte beide Male „links höher“ stehen.
+5. „Zur Übersicht“: Liste der Abweichungen, größte zuerst.

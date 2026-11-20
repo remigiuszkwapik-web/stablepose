@@ -5,7 +5,7 @@ Die App läuft im Browser (Safari auf iPhone und iPad), nutzt die Kamera und erk
 MediaPipe Pose Landmarker 33 Körperpunkte. Tests:
 
 - **Einbeinstand** mit Fehlerzählung nach den BESS-Kriterien (3 Versuche pro Seite, Export CSV/JSON)
-- **Haltung frontal** (erster Wurf): Neigung von Schulter- und Beckenlinie in Grad
+- **Haltung** vorne, seitlich und hinten: Winkel von Schulter-, Becken-, Ohrlinie, Rumpf, Kopf und Bein
 - **Körpergröße** (Prototyp): mit der Waagenplatte als Maßstab, Ergebnis mit geschätzter Spanne
 - **Live-Ansicht**: nur Skelett, ohne Messung
 

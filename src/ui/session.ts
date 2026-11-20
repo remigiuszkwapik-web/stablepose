@@ -228,7 +228,8 @@ export async function openSession(o: SessionOptions): Promise<() => void> {
     const timer = window.setInterval(() => {
       if (disposed) return window.clearInterval(timer);
       const stand = (window as unknown as { __standSide?: 'left' | 'right' }).__standSide;
-      const frame = syntheticScript(performance.now() - t0, stand, o.title === 'Körpergröße');
+      const synthView = (window as unknown as { __syntheticView?: 'front' | 'side' | 'back' }).__syntheticView;
+      const frame = syntheticScript(performance.now() - t0, stand, o.title === 'Körpergröße', o.title === 'Haltung' ? synthView : undefined);
       lastFrame = frame;
       paint(frame);
       const stats = { fps: 30, inferenceMs: 0, model: 'synthetisch', delegate: '–' };

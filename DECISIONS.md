@@ -200,3 +200,24 @@ Rückmeldung: „Hand an der Hüfte“ wurde schlecht erkannt. Zwei Ursachen im 
 3. Ellbogen-Schwellen großzügiger: gebeugt ≤ 150° (vorher 140°), „gestreckt = Hand weg“ > 165° (vorher 155°),
    weil der Winkel im 2D-Bild je nach Ellbogenrichtung gestreckter wirkt.
 Debug zeigt jetzt zusätzlich die Sichtbarkeit beider Handgelenke; Werte über der Schwelle sind rot.
+
+## M7 – Haltung vorne, seitlich, hinten
+
+- **Ablauf:** drei Ansichten nacheinander (je Positionscheck → 3 s Countdown → 3 s Messung),
+  jede überspringbar oder wiederholbar, am Ende eine Übersicht. Kein Speichern, kein Export (noch).
+- **Positionscheck je Ansicht:** Vorne wie bisher. Seitlich: Schulterbreite/Rumpf ≤ 0,35, geprüft
+  werden nur die Punkte der kameranahen Seite. Hinten: breit genug und Nase kaum sichtbar
+  (sonst „Dreh der Kamera den Rücken zu“); Kopfpunkte mit niedriger Sichtbarkeit (0,2) zugelassen.
+- **Rückansicht links/rechts:** Von hinten liegt die linke Körperseite im Bild links. Beschriftet
+  MediaPipe es umgekehrt (es hält die Person dann für frontal), werden die Seiten automatisch
+  getauscht. Damit bedeutet „links höher“ vorne wie hinten dasselbe.
+- **Messgrößen vorne/hinten:** Schulterlinie, Beckenlinie, Ohrlinie (Kopf), Rumpfachse
+  (Hüftmitte → Schultermitte zur Senkrechten).
+- **Messgrößen seitlich** (kameranahe Seite, Blickrichtung aus Nase vor Ohr): Ohr zur Schulter,
+  Schulter zur Hüfte, Hüfte zum Knöchel (je zur Senkrechten, + = nach vorn) und Knie zur Linie
+  Hüfte–Knöchel. **Wichtig:** MediaPipe kennt keinen Halswirbel (C7) und keine Knochenpunkte –
+  „Ohr zur Schulter“ ist eine Näherung, kein klinischer Kopfhaltungswinkel.
+- **Sprache:** neutrale Richtungen („nach vorn“, „links höher“, „Knie davor“), keine Begriffe wie
+  Hohlkreuz, Rundrücken, Fehlhaltung (Test prüft das). Übersicht listet Abweichungen ab 1°, größte zuerst.
+- **Grenze:** alles bezieht sich auf die Bild-Senkrechte → Handy muss gerade stehen
+  (Geräteneigung wird angezeigt, nicht herausgerechnet). Kleidung und Haare verschieben Punkte.
