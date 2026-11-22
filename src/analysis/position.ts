@@ -80,8 +80,9 @@ export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.pos
   const feetIdx = view === 'side' ? sidePts(near).feet : FEET;
   const bodyIdx = view === 'side' ? sidePts(near).body : BODY;
   const headV = view === 'back' ? config.posture.backHeadMinVisibility : minV;
-  const headNeed = view === 'front' ? 3 : view === 'side' ? 2 : 2;
-  const feetNeed = view === 'side' ? 2 : 4;
+  // Hinten: Gesichtspunkte sind verdeckt, Zehen oft hinter den Fersen → weniger Punkte verlangen.
+  const headNeed = view === 'front' ? 3 : view === 'side' ? 2 : 1;
+  const feetNeed = view === 'side' ? 2 : view === 'back' ? 3 : 4;
 
   // Kopf: Augen/Nase/Ohren sichtbar? Scheitel liegt grob 0,6 × (Schulter–Nase) über der Nase (geschätzt).
   const headVisible = headIdx.filter((i) => p[i].v >= headV).length >= headNeed;
@@ -117,8 +118,10 @@ export function checkPosition(frame: PoseFrame, cfg: PositionConfig = config.pos
   } else if (view === 'side') {
     if (shoulderRatio > config.posture.maxSideShoulderRatio) issues.add('turnSide');
   } else {
-    // Rücken: breit genug, Gesicht nicht deutlich sichtbar. Links/rechts prüft postureViews (ggf. Tausch).
-    if (!wide || nose.v > config.posture.maxBackNoseVisibility) issues.add('turnBack');
+    // Rücken: nur „breit genug“ prüfen. Ob Gesicht oder Rücken zur Kamera zeigt, lässt sich nicht
+    // zuverlässig erkennen: MediaPipe meldet auch von hinten oft eine gut „sichtbare“ Nase.
+    // Wir vertrauen der Anweisung; links/rechts korrigiert postureViews (fixBackLabels).
+    if (!wide) issues.add('turnBack');
   }
 
   if (!bodyIdx.every(vis)) issues.add('lowVisibility');

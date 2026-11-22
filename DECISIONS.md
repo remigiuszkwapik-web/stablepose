@@ -232,3 +232,12 @@ Debug zeigt jetzt zusätzlich die Sichtbarkeit beider Handgelenke; Werte über d
   Messung) und die Bezugslinien (gestrichelt: Lot bzw. Waagerechte) ins Bild. So lässt sich
   direkt sehen, ob die Punkte auf Ohr, Schulter, Hüfte, Knie und Knöchel sitzen.
 - **Fehler behoben:** Rumpfachse bei 0° hieß „waagerecht“, richtig ist „senkrecht“.
+- **Rückansicht wurde im Studio nicht erkannt.** Ursache: Der Check verlangte eine kaum sichtbare
+  Nase. MediaPipe meldet aber auch von hinten oft eine gut „sichtbare“ Nase (es hält die Person für
+  frontal). **Neu:** Hinten wird nur noch geprüft, ob die Person breit genug (nicht seitlich) und
+  ganz im Bild ist; 1 Kopfpunkt und 3 Fußpunkte reichen (Zehen sind von hinten oft verdeckt).
+  Ob Rücken oder Gesicht zur Kamera zeigt, kann die App damit nicht mehr unterscheiden – sie
+  vertraut der Anweisung. Steht jemand doch mit dem Gesicht zur Kamera, wären links/rechts vertauscht.
+- **Notlösung „Trotzdem messen“:** Hängt der Positionscheck länger als 8 s, erscheint der Button.
+  Gemessen wird dann ohne Positionscheck (Person muss nur erkannt sein); das Ergebnis trägt den
+  Hinweis „Ohne Positionscheck gemessen – die Werte sind unsicherer“.
