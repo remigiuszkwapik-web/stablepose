@@ -22,9 +22,17 @@ describe('Positionscheck je Ansicht', () => {
   it('seitlich: frontale Person → „Dreh dich seitlich zur Kamera“', () => {
     expect(checkPosition(makePose(), undefined, 'side').issues).toContain('turnSide');
   });
-  it('hinten: Rückansicht ok, frontale Person (Gesicht sichtbar) → „Dreh der Kamera den Rücken zu“', () => {
+  it('hinten: Rückansicht ok – auch wenn MediaPipe die Nase als gut sichtbar meldet (Fall aus dem Studio)', () => {
     expect(checkPosition(backPose(), undefined, 'back').ok).toBe(true);
-    expect(checkPosition(makePose(), undefined, 'back').issues).toContain('turnBack');
+    const f = backPose((fr) => { for (const i of [L.nose, L.leftEye, L.rightEye]) fr.image![i] = { ...fr.image![i], v: 0.95 }; }, true);
+    expect(checkPosition(f, undefined, 'back').ok).toBe(true);
+  });
+  it('hinten: Zehen verdeckt (nur Knöchel und Fersen sichtbar) → trotzdem ok', () => {
+    const f = backPose((fr) => { for (const i of [L.leftFootIndex, L.rightFootIndex]) fr.image![i] = { ...fr.image![i], v: 0.2 }; });
+    expect(checkPosition(f, undefined, 'back').ok).toBe(true);
+  });
+  it('hinten: seitlich gedreht → „Dreh der Kamera den Rücken zu“', () => {
+    expect(checkPosition(makeSidePose(), undefined, 'back').issues).toContain('turnBack');
   });
 });
 

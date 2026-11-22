@@ -40,6 +40,10 @@ export function postureController(ui: SessionUI): Controller {
   let rolls: number[] = [];
   let swappedFrames = 0;
   let measuredPts: Pt[][] = [];
+  /** Notlösung: Positionscheck übergehen (nur Person muss erkannt sein). */
+  let override = false;
+  const overrideUsed: Partial<Record<View, boolean>> = {};
+  const overrideBtn = h('button', { type: 'button', class: 'btn', hidden: true, onclick: () => { override = true; overrideBtn.hidden = true; } }, 'Trotzdem messen');
   let nearVotes = { left: 0, right: 0 };
   /** Gemittelte Punkte der letzten Messung je Ansicht, für die Linien im Bild. */
   const shown: Partial<Record<View, { pts: Pt[]; near: 'left' | 'right' }>> = {};
@@ -146,11 +150,14 @@ export function postureController(ui: SessionUI): Controller {
     swappedFrames = 0;
     measuredPts = [];
     nearVotes = { left: 0, right: 0 };
+    override = false;
+    delete overrideUsed[view()];
+    overrideBtn.hidden = true;
     if (ui.isFile) ui.restartVideo();
     ui.panel.replaceChildren(
       h('p', { class: 'panel-text' }, `${VIEW_NAME[view()]}: ruhig stehen. Die Messung startet automatisch.`),
       tiltLine,
-      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn ghost', onclick: showIntro }, 'Abbrechen')),
+      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn ghost', onclick: showIntro }, 'Abbrechen'), overrideBtn),
     );
   }
 
@@ -178,6 +185,7 @@ export function postureController(ui: SessionUI): Controller {
         valueRows(v, r),
         h('p', { class: 'muted small' }, 'Im Bild: grün = gemessene Linien, gestrichelt = Lot bzw. Waagerechte. Sitzen die grünen Punkte nicht auf Ohr, Schulter, Hüfte, Knie und Knöchel, ist der Wert unsicher.'),
         Number.isFinite(roll) ? h('p', { class: 'panel-text num' }, `Handy war ${Math.abs(Math.round(roll))}° seitlich geneigt.`) : null,
+        overrideUsed[v] ? h('p', { class: 'notice warn small' }, 'Ohne Positionscheck gemessen – die Werte sind unsicherer.') : null,
         v === 'back' && swappedFrames > samples.length / 2
           ? h('p', { class: 'muted small' }, 'Hinweis: Die Körperseiten wurden von hinten automatisch richtig zugeordnet.')
           : null,
@@ -243,10 +251,14 @@ export function postureController(ui: SessionUI): Controller {
       ]);
       if (step !== 'run') return;
       flow ??= initFlow(frame.t);
-      flow = stepFlow(flow, { t: frame.t, positionOk: pos.ok, startPose: true }, flowCfg);
+      // Hängt der Positionscheck länger als 8 s, „Trotzdem messen“ anbieten (Person muss erkannt sein).
+      if (flow.phase === 'check' && !override && frame.t - flow.since > 8000) overrideBtn.hidden = false;
+      const posOk = pos.ok || (override && !!frame.image);
+      if (override) overrideUsed[v] = true;
+      flow = stepFlow(flow, { t: frame.t, positionOk: posOk, startPose: true }, flowCfg);
       switch (flow.phase) {
         case 'check':
-          ui.setHint(pos.message ?? 'Gut so – kurz stillhalten', pos.ok ? 'ok' : 'warn');
+          ui.setHint(pos.message ?? 'Gut so – kurz stillhalten', posOk ? 'ok' : 'warn');
           setBig();
           break;
         case 'countdown':
@@ -257,8 +269,8 @@ export function postureController(ui: SessionUI): Controller {
           break;
         case 'measuring':
           // Nur Frames mit passender Position zählen; sonst „nicht messbar“.
-          samples.push(pos.ok ? sample : {});
-          if (pos.ok && frame.image) {
+          samples.push(posOk ? sample : {});
+          if (posOk && frame.image) {
             measuredPts.push(frame.image);
             if (meta.near) nearVotes[meta.near] += 1;
           }
