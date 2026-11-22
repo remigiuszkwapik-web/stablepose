@@ -19,7 +19,7 @@ if (import.meta.env.DEV && location.search.includes('fast')) {
 
 const TESTS: StartHandlers['tests'] = [
   { value: 'singleLeg', label: 'Einbeinstand', description: `Gleichgewicht auf einem Bein, ${config.singleLeg.durationS} s` },
-  { value: 'posture', label: 'Haltung', description: 'Vorne, seitlich und hinten, je 3 s' },
+  { value: 'posture', label: 'Haltung', description: 'Vorne und seitlich, je 3 s' },
   { value: 'height', label: 'Körpergröße', description: 'Mit der Waagenplatte als Maßstab' },
   { value: 'live', label: 'Live-Ansicht', description: 'Nur Skelett anzeigen, ohne Messung' },
 ];

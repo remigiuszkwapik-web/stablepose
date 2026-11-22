@@ -241,3 +241,15 @@ Debug zeigt jetzt zusätzlich die Sichtbarkeit beider Handgelenke; Werte über d
 - **Notlösung „Trotzdem messen“:** Hängt der Positionscheck länger als 8 s, erscheint der Button.
   Gemessen wird dann ohne Positionscheck (Person muss nur erkannt sein); das Ergebnis trägt den
   Hinweis „Ohne Positionscheck gemessen – die Werte sind unsicherer“.
+
+## Haltung: Rückansicht gestrichen, optional andere Seite
+
+- **Rückansicht entfernt** (Code bleibt, ist getestet, aber nicht mehr im Ablauf). Mit Gelenkpunkten
+  liefert sie dieselben Werte wie vorne (Schulter-, Becken-, Ohrlinie, Rumpfachse), wird schlechter
+  erkannt und kann links/rechts vertauschen. Was eine Rückansicht klinisch interessant macht
+  (Schulterblätter, Wirbelsäule, Fersenstellung), erkennt MediaPipe nicht.
+- **Standard:** vorne + seitlich. **Optional:** andere Seite (Link nach der Seitmessung und in der
+  Übersicht). Dann zeigt die Übersicht einen Seitenvergleich links/rechts mit Unterschied in Grad.
+  Wird zweimal dieselbe Körperseite gemessen, gibt es einen Hinweis.
+- Seitansichten heißen nach der Messung „Seitlich (linke Seite)“ bzw. „(rechte Seite)“ =
+  die Körperseite, die zur Kamera zeigte.

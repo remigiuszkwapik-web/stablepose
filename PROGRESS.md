@@ -13,7 +13,7 @@
 | M4 Versuche + Ergebnis | ✅ fertig | 3 × pro Seite, Ergebnis-Screen, CSV/JSON-Export |
 | M5 Haltung frontal | ✅ fertig (erster Wurf) | Schulter-/Beckenlinie in Grad, Geräteneigung optional |
 | M6 Körpergröße mit Platte | ✅ Prototyp | Ecken antippen (Lupe), Neigung per Sensor, Ergebnis mit Spanne |
-| M7 Haltung 3 Ansichten | ✅ | vorne, seitlich, hinten + Übersicht der Abweichungen |
+| M7 Haltung | ✅ | vorne + seitlich, optional andere Seite mit Seitenvergleich; Linien im Bild |
 
 Bei jedem Meilenstein waren `npm run build` und `npm test` grün (am Ende **109 Tests**).
 Zusätzlich habe ich jeden Ablauf im Headless-Browser durchgeklickt – mit einem Beispielvideo als
@@ -354,3 +354,9 @@ Frontkamera-Videos ggf. „Gespiegelt“ einschalten, wenn links/rechts vertausc
 4. „Weiter: Hinten“ → Rücken zur Kamera → „Los“. Gegenprobe: linke Schulter hochziehen → vorne
    und hinten sollte beide Male „links höher“ stehen.
 5. „Zur Übersicht“: Liste der Abweichungen, größte zuerst.
+
+### Nachtrag M7 (nach Test im Studio)
+- Rückansicht aus dem Ablauf genommen (kein Mehrwert, schlecht erkannt). Standard: vorne + seitlich.
+- Optional „andere Seite messen“ → Seitenvergleich links/rechts in der Übersicht.
+- Nach jeder Messung: gemessene Linien grün, Lot/Waagerechte gestrichelt im Bild.
+- „Trotzdem messen“, wenn der Positionscheck länger als 8 s hängt.

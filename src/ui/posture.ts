@@ -13,17 +13,24 @@ import type { Controller, SessionUI } from './session';
 
 type Step = 'intro' | 'run' | 'viewDone' | 'summary';
 
-const VIEWS: View[] = ['front', 'side', 'back'];
-const VIEW_NAME: Record<View, string> = { front: 'Vorne', side: 'Seitlich', back: 'Hinten' };
-const VIEW_INSTRUCTION: Record<View, string[]> = {
+/**
+ * Schritte: vorne und seitlich (Standard), optional die andere Seite (Seitenvergleich).
+ * Die Rückansicht ist bewusst nicht mehr im Ablauf: Sie liefert mit Gelenkpunkten dieselben Werte
+ * wie vorne, wird schlechter erkannt und kann links/rechts vertauschen (siehe DECISIONS.md).
+ */
+type StepKey = 'front' | 'side' | 'side2';
+const VIEW_OF: Record<StepKey, View> = { front: 'front', side: 'side', side2: 'side' };
+const BASE_STEPS: StepKey[] = ['front', 'side'];
+const SIDE_NAME = { left: 'linke Seite', right: 'rechte Seite' } as const;
+const VIEW_INSTRUCTION: Record<StepKey, string[]> = {
   front: ['Stell dich frontal zur Kamera, Kopf bis Füße im Bild.', 'Arme locker hängen lassen, Füße hüftbreit.', 'Geradeaus schauen.'],
   side: ['Dreh dich um 90° zur Seite – egal ob nach links oder rechts.', 'Arme locker hängen lassen.', 'Geradeaus schauen, nicht zur Kamera.'],
-  back: ['Dreh der Kamera den Rücken zu.', 'Arme locker hängen lassen, Füße hüftbreit.', 'Haare möglichst aus dem Nacken.'],
+  side2: ['Dreh dich um 180°, sodass jetzt die andere Körperseite zur Kamera zeigt.', 'Arme locker hängen lassen.', 'Geradeaus schauen, nicht zur Kamera.'],
 };
 
 const TILT_WARNING = 'Alle Winkel beziehen sich auf das Kamerabild. Steht das Handy schief, verschiebt sich jeder Wert um genau diesen Winkel. Stell das Handy senkrecht und gerade auf.';
 
-type Results = Partial<Record<View, Partial<Record<MetricKey, number>>>>;
+type Results = Partial<Record<StepKey, Partial<Record<MetricKey, number>>>>;
 
 /** Wert rechts: Gradzahl in Mono, Richtung in Geist darunter. */
 function valueCell(deg: number, text: string) {
@@ -31,9 +38,32 @@ function valueCell(deg: number, text: string) {
   return h('span', { class: 'kv-val' }, h('span', { class: 'num kv-deg' }, `${Math.abs(deg)}°`), h('span', { class: 'kv-dir' }, text));
 }
 
-/** Haltung: vorne, seitlich, hinten nacheinander, je 3 s; danach Übersicht. Nur Werte, keine Bewertung. */
+/** Vergleich der beiden Seitansichten: Werte je Körperseite und Unterschied. Keine Bewertung. */
+function sideCompare(a: Partial<Record<MetricKey, number>>, b: Partial<Record<MetricKey, number>>, aNear: 'left' | 'right') {
+  const left = aNear === 'left' ? a : b;
+  const right = aNear === 'left' ? b : a;
+  const cell = (v: number | undefined) => h('td', { class: 'num' }, v !== undefined && Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v}°` : '–');
+  return h(
+    'div',
+    { class: 'table-wrap' },
+    h('p', { class: 'label' }, 'Seitenvergleich (+ = nach vorn)'),
+    h(
+      'table',
+      { class: 'table' },
+      h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Links'), h('th', {}, 'Rechts'), h('th', {}, 'Unterschied'))),
+      h('tbody', {}, ...VIEW_KEYS.side.map((k) => {
+        const l = left[k], r = right[k];
+        const d = l !== undefined && r !== undefined && Number.isFinite(l) && Number.isFinite(r) ? Math.abs(l - r) : NaN;
+        return h('tr', {}, h('td', {}, METRIC_LABELS.side[k]!), cell(l), cell(r), h('td', { class: 'num' }, Number.isFinite(d) ? `${d}°` : '–'));
+      })),
+    ),
+  );
+}
+
+/** Haltung: vorne und seitlich (optional andere Seite), je 3 s; danach Übersicht. Nur Werte, keine Bewertung. */
 export function postureController(ui: SessionUI): Controller {
   let step: Step = 'intro';
+  let steps: StepKey[] = [...BASE_STEPS];
   let viewIdx = 0;
   let flow: FlowState | null = null;
   let samples: ViewSample[] = [];
@@ -42,17 +72,17 @@ export function postureController(ui: SessionUI): Controller {
   let measuredPts: Pt[][] = [];
   /** Notlösung: Positionscheck übergehen (nur Person muss erkannt sein). */
   let override = false;
-  const overrideUsed: Partial<Record<View, boolean>> = {};
+  const overrideUsed: Partial<Record<StepKey, boolean>> = {};
   const overrideBtn = h('button', { type: 'button', class: 'btn', hidden: true, onclick: () => { override = true; overrideBtn.hidden = true; } }, 'Trotzdem messen');
   let nearVotes = { left: 0, right: 0 };
   /** Gemittelte Punkte der letzten Messung je Ansicht, für die Linien im Bild. */
-  const shown: Partial<Record<View, { pts: Pt[]; near: 'left' | 'right' }>> = {};
+  const shown: Partial<Record<StepKey, { pts: Pt[]; near: 'left' | 'right' }>> = {};
   const results: Results = {};
 
   // Nach der Messung: gemessene Linien (grün) und Bezugslinien (gestrichelt) ins Bild zeichnen.
   ui.setOverlay((ctx) => {
     if (step !== 'viewDone') return;
-    const d = shown[view()];
+    const d = shown[key()];
     if (!d) return;
     const unit = Math.max(ctx.canvas.width, ctx.canvas.height) / 640;
     ctx.save();
@@ -72,7 +102,7 @@ export function postureController(ui: SessionUI): Controller {
     }
     ctx.restore();
   });
-  const rollByView: Partial<Record<View, number>> = {};
+  const rollByView: Partial<Record<StepKey, number>> = {};
   const tilt = new DeviceTiltWatcher();
   let tiltOn = false;
   const flowCfg: FlowConfig = {
@@ -83,7 +113,15 @@ export function postureController(ui: SessionUI): Controller {
     lostGraceMs: 1000,
   };
   const tiltLine = h('p', { class: 'panel-text num' });
-  const view = () => VIEWS[viewIdx];
+  const key = () => steps[viewIdx];
+  const view = () => VIEW_OF[key()];
+  const isLast = () => viewIdx >= steps.length - 1;
+  /** Name eines Schritts; seitlich mit der gemessenen Körperseite, sobald bekannt. */
+  const stepName = (k: StepKey) => {
+    if (k === 'front') return 'Vorne';
+    const near = shown[k]?.near;
+    return near ? `Seitlich (${SIDE_NAME[near]})` : k === 'side2' ? 'Seitlich (andere Seite)' : 'Seitlich';
+  };
 
   const updateTiltLine = () => {
     const t = tilt.latest;
@@ -116,26 +154,26 @@ export function postureController(ui: SessionUI): Controller {
 
   function showIntro() {
     step = 'intro';
-    if (import.meta.env.DEV) (window as unknown as { __syntheticView?: View }).__syntheticView = view(); // nur synthetische Testperson
+    if (import.meta.env.DEV) (window as unknown as { __syntheticView?: StepKey }).__syntheticView = key(); // nur synthetische Testperson
     flow = null;
     setBig();
     ui.setHint(null);
-    const v = view();
+    const k = key();
     const tiltBtn = DeviceTiltWatcher.supported && !tiltOn
       ? h('button', { type: 'button', class: 'btn', onclick: async () => { tiltOn = await tilt.start(); showIntro(); } }, 'Geräteneigung anzeigen')
       : null;
     updateTiltLine();
     ui.panel.replaceChildren(
       ...nodes(
-        h('h2', {}, `Haltung · ${VIEW_NAME[v]} (${viewIdx + 1} von 3)`),
-        h('ol', { class: 'steps' }, ...VIEW_INSTRUCTION[v].map((t) => h('li', {}, t)), h('li', {}, `Ruhig stehen. ${config.posture.durationS} Sekunden.`)),
+        h('h2', {}, `Haltung · ${stepName(k)} · ${viewIdx + 1} von ${steps.length}`),
+        h('ol', { class: 'steps' }, ...VIEW_INSTRUCTION[k].map((t) => h('li', {}, t)), h('li', {}, `Ruhig stehen. ${config.posture.durationS} Sekunden.`)),
         viewIdx === 0 ? h('p', { class: 'notice warn small' }, TILT_WARNING) : null,
         tiltLine,
         tiltBtn,
         h(
           'div',
           { class: 'row' },
-          h('button', { type: 'button', class: 'btn ghost', onclick: nextView }, viewIdx < 2 ? 'Überspringen' : 'Zur Übersicht'),
+          h('button', { type: 'button', class: 'btn ghost', onclick: nextView }, isLast() ? 'Zur Übersicht' : 'Überspringen'),
           h('button', { type: 'button', class: 'btn primary big', onclick: startRun }, 'Los'),
         ),
       ),
@@ -151,18 +189,24 @@ export function postureController(ui: SessionUI): Controller {
     measuredPts = [];
     nearVotes = { left: 0, right: 0 };
     override = false;
-    delete overrideUsed[view()];
+    delete overrideUsed[key()];
     overrideBtn.hidden = true;
     if (ui.isFile) ui.restartVideo();
     ui.panel.replaceChildren(
-      h('p', { class: 'panel-text' }, `${VIEW_NAME[view()]}: ruhig stehen. Die Messung startet automatisch.`),
+      h('p', { class: 'panel-text' }, `${stepName(key())}: ruhig stehen. Die Messung startet automatisch.`),
       tiltLine,
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn ghost', onclick: showIntro }, 'Abbrechen'), overrideBtn),
     );
   }
 
+  function addOtherSide() {
+    if (!steps.includes('side2')) steps = [...steps, 'side2'];
+    viewIdx = steps.indexOf('side2');
+    showIntro();
+  }
+
   function nextView() {
-    if (viewIdx < VIEWS.length - 1) {
+    if (!isLast()) {
       viewIdx += 1;
       showIntro();
     } else showSummary();
@@ -171,30 +215,33 @@ export function postureController(ui: SessionUI): Controller {
   function showViewDone() {
     step = 'viewDone';
     setBig();
+    const k = key();
     const v = view();
     const r = summarizeView(samples, v);
-    results[v] = r;
+    results[k] = r;
     const mp = meanPoints(measuredPts);
-    if (mp) shown[v] = { pts: mp, near: nearVotes.left >= nearVotes.right ? 'left' : 'right' };
+    if (mp) shown[k] = { pts: mp, near: nearVotes.left >= nearVotes.right ? 'left' : 'right' };
     const roll = mean(rolls);
-    if (Number.isFinite(roll)) rollByView[v] = roll;
-    ui.setHint(`${VIEW_NAME[v]} gemessen`, 'ok');
+    if (Number.isFinite(roll)) rollByView[k] = roll;
+    const sameSide = k === 'side2' && shown.side && shown.side2 && shown.side.near === shown.side2.near;
+    ui.setHint(`${stepName(k)} gemessen`, 'ok');
     ui.panel.replaceChildren(
       ...nodes(
-        h('h2', {}, `${VIEW_NAME[v]}`),
+        h('h2', {}, stepName(k)),
         valueRows(v, r),
         h('p', { class: 'muted small' }, 'Im Bild: grün = gemessene Linien, gestrichelt = Lot bzw. Waagerechte. Sitzen die grünen Punkte nicht auf Ohr, Schulter, Hüfte, Knie und Knöchel, ist der Wert unsicher.'),
         Number.isFinite(roll) ? h('p', { class: 'panel-text num' }, `Handy war ${Math.abs(Math.round(roll))}° seitlich geneigt.`) : null,
-        overrideUsed[v] ? h('p', { class: 'notice warn small' }, 'Ohne Positionscheck gemessen – die Werte sind unsicherer.') : null,
-        v === 'back' && swappedFrames > samples.length / 2
-          ? h('p', { class: 'muted small' }, 'Hinweis: Die Körperseiten wurden von hinten automatisch richtig zugeordnet.')
-          : null,
+        overrideUsed[k] ? h('p', { class: 'notice warn small' }, 'Ohne Positionscheck gemessen – die Werte sind unsicherer.') : null,
+        sameSide ? h('p', { class: 'notice warn small' }, 'Es wurde wieder dieselbe Körperseite gemessen. Für den Seitenvergleich bitte umdrehen und wiederholen.') : null,
         h(
           'div',
           { class: 'row' },
           h('button', { type: 'button', class: 'btn ghost', onclick: startRun }, 'Wiederholen'),
-          h('button', { type: 'button', class: 'btn primary big', onclick: nextView }, viewIdx < 2 ? `Weiter: ${VIEW_NAME[VIEWS[viewIdx + 1]]}` : 'Zur Übersicht'),
+          h('button', { type: 'button', class: 'btn primary big', onclick: nextView }, isLast() ? 'Zur Übersicht' : `Weiter: ${stepName(steps[viewIdx + 1])}`),
         ),
+        k === 'side' && !steps.includes('side2')
+          ? h('button', { type: 'button', class: 'link', onclick: addOtherSide }, 'Optional: andere Seite messen (Seitenvergleich)')
+          : null,
       ),
     );
   }
@@ -203,24 +250,37 @@ export function postureController(ui: SessionUI): Controller {
     step = 'summary';
     setBig();
     ui.setHint('Haltung – Übersicht', 'ok');
-    const measured = VIEWS.filter((v) => results[v]);
-    const list = asymmetries(results);
+    const measured = steps.filter((k) => results[k]);
+    // Abweichungen aller gemessenen Schritte, größte zuerst
+    const list = measured
+      .flatMap((k) => asymmetries({ [VIEW_OF[k]]: results[k] }).map((i) => ({ ...i, name: stepName(k) })))
+      .sort((a, b) => b.deg - a.deg);
+    const compare = results.side && results.side2 && shown.side && shown.side2 && shown.side.near !== shown.side2.near
+      ? sideCompare(results.side, results.side2, shown.side.near)
+      : null;
     const rolls = Object.values(rollByView).filter((x): x is number => x !== undefined);
     ui.panel.replaceChildren(
       ...nodes(
         h('h2', {}, 'Übersicht Haltung'),
         h('p', { class: 'panel-text' }, 'Abweichungen von der Waagerechten bzw. vom Lot, größte zuerst. Nur Werte, keine Bewertung.'),
         list.length
-          ? h('ul', { class: 'kv' }, ...list.map((i) => h('li', {}, h('span', {}, `${VIEW_NAME[i.view]} · ${i.label}`), valueCell(i.deg, i.text))))
+          ? h('ul', { class: 'kv' }, ...list.map((i) => h('li', {}, h('span', {}, `${i.name} · ${i.label}`), valueCell(i.deg, i.text))))
           : h('p', { class: 'panel-text' }, measured.length ? 'Keine Abweichung ab 1°.' : 'Keine Ansicht gemessen.'),
-        ...measured.map((v) => h('details', {}, h('summary', {}, `${VIEW_NAME[v]} – alle Werte`), valueRows(v, results[v]!))),
+        compare,
+        ...measured.map((k) => h('details', {}, h('summary', {}, `${stepName(k)} – alle Werte`), valueRows(VIEW_OF[k], results[k]!))),
+        !steps.includes('side2') ? h('button', { type: 'button', class: 'link', onclick: addOtherSide }, 'Andere Seite zusätzlich messen (Seitenvergleich)') : null,
         rolls.length ? h('p', { class: 'panel-text num' }, `Handy seitlich geneigt: ${rolls.map((r) => `${Math.abs(Math.round(r))}°`).join(' / ')}`) : null,
         h('p', { class: 'notice warn small' }, TILT_WARNING),
         h('p', { class: 'muted small' }, 'Kein medizinischer Test. Die Werte dienen nur zur Orientierung fürs Training. Kleidung und Haare beeinflussen die erkannten Punkte.'),
         h(
           'div',
           { class: 'row' },
-          h('button', { type: 'button', class: 'btn primary', onclick: () => { viewIdx = 0; for (const v of VIEWS) delete results[v]; showIntro(); } }, 'Noch einmal von vorn'),
+          h('button', { type: 'button', class: 'btn primary', onclick: () => {
+            viewIdx = 0;
+            steps = [...BASE_STEPS];
+            for (const k of ['front', 'side', 'side2'] as StepKey[]) { delete results[k]; delete shown[k]; delete rollByView[k]; }
+            showIntro();
+          } }, 'Noch einmal von vorn'),
         ),
       ),
     );
@@ -239,13 +299,12 @@ export function postureController(ui: SessionUI): Controller {
       const { sample, meta } = viewSample(frame, v);
       const pos = checkPosition(frame, undefined, v);
       ui.setDebugRows([
-        ['Ansicht', VIEW_NAME[v]],
+        ['Ansicht', stepName(key())],
         ['Phase', flow?.phase ?? step],
         ['Position', pos.ok ? 'ok' : pos.issues.join(', '), !pos.ok],
         ['Schulter/Rumpf', fmtDec(pos.metrics.shoulderRatio)],
         ...VIEW_KEYS[v].map((k): [string, string] => [METRIC_LABELS[v][k]!, `${fmtDec(sample[k] ?? NaN, 1)}°`]),
         ...(v === 'side' ? [['Seite zur Kamera / Blick', `${meta.near ?? '–'} / ${meta.facing ?? '–'}`] as [string, string]] : []),
-        ...(v === 'back' ? [['Links/rechts getauscht', meta.swapped ? 'ja' : 'nein'] as [string, string]] : []),
         ['Gerät roll / pitch', tilt.latest ? `${fmtInt(tilt.latest.roll)}° / ${fmtInt(tilt.latest.pitch)}°` : '–'],
         ['Frames gemessen', String(samples.length)],
       ]);
@@ -254,7 +313,7 @@ export function postureController(ui: SessionUI): Controller {
       // Hängt der Positionscheck länger als 8 s, „Trotzdem messen“ anbieten (Person muss erkannt sein).
       if (flow.phase === 'check' && !override && frame.t - flow.since > 8000) overrideBtn.hidden = false;
       const posOk = pos.ok || (override && !!frame.image);
-      if (override) overrideUsed[v] = true;
+      if (override) overrideUsed[key()] = true;
       flow = stepFlow(flow, { t: frame.t, positionOk: posOk, startPose: true }, flowCfg);
       switch (flow.phase) {
         case 'check':
