@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { asymmetries, directionText, fixBackLabels, summarizeView, viewSample } from '../src/analysis/postureViews';
+import { asymmetries, directionText, fixBackLabels, meanPoints, overlayLines, summarizeView, viewSample } from '../src/analysis/postureViews';
 import { checkPosition } from '../src/analysis/position';
 import { L } from '../src/analysis/landmarks';
 import { makePose, makeSidePose } from '../src/dev/syntheticPose';
@@ -102,5 +102,29 @@ describe('Zusammenfassung', () => {
     expect(directionText('side', 'knee', -2)).toBe('Knie dahinter');
     expect(directionText('front', 'trunk', 3)).toBe('nach links geneigt');
     expect(directionText('back', 'pelvis', 0)).toBe('waagerecht');
+    expect(directionText('front', 'trunk', 0)).toBe('senkrecht');
+    expect(directionText('side', 'head', 0)).toBe('im Lot');
+  });
+});
+
+describe('Linien im Bild', () => {
+  it('Mittelwert der Punkte', () => {
+    const a = makePose().image!, b = makePose({ dx: 10 }).image!;
+    expect(meanPoints([a, b])![L.nose].x).toBeCloseTo(a[L.nose].x + 5);
+    expect(meanPoints([])).toBeNull();
+  });
+  it('seitlich: Kette Knöchel→Ohr (4 Strecken) + Lotlinien; Lot durch den Knöchel ist senkrecht', () => {
+    const f = makeSidePose({ headDeg: 15 });
+    const lines = overlayLines('side', f.image!, 'left');
+    expect(lines.filter((l) => l.kind === 'measured')).toHaveLength(4);
+    const lot = lines.find((l) => l.kind === 'reference')!;
+    expect(lot.a.x).toBe(lot.b.x);
+  });
+  it('vorne: drei Linien + Rumpfachse, Bezugslinien waagerecht bzw. senkrecht', () => {
+    const lines = overlayLines('front', makePose().image!);
+    expect(lines.filter((l) => l.kind === 'measured')).toHaveLength(4);
+    const refs = lines.filter((l) => l.kind === 'reference');
+    expect(refs.slice(0, 3).every((l) => l.a.y === l.b.y)).toBe(true);
+    expect(refs[3].a.x).toBe(refs[3].b.x);
   });
 });

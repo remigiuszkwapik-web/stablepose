@@ -1,8 +1,9 @@
 import { checkPosition, type View } from '../analysis/position';
 import {
-  asymmetries, directionText, METRIC_LABELS, summarizeView, VIEW_KEYS, viewSample,
+  asymmetries, directionText, meanPoints, METRIC_LABELS, overlayLines, summarizeView, VIEW_KEYS, viewSample,
   type MetricKey, type ViewSample,
 } from '../analysis/postureViews';
+import type { Pt } from '../analysis/types';
 import { countdownLeft, initFlow, measureLeft, stepFlow, type FlowConfig, type FlowState } from '../analysis/singleLegFlow';
 import { mean } from '../analysis/smoothing';
 import { config } from '../config';
@@ -38,7 +39,35 @@ export function postureController(ui: SessionUI): Controller {
   let samples: ViewSample[] = [];
   let rolls: number[] = [];
   let swappedFrames = 0;
+  let measuredPts: Pt[][] = [];
+  let nearVotes = { left: 0, right: 0 };
+  /** Gemittelte Punkte der letzten Messung je Ansicht, für die Linien im Bild. */
+  const shown: Partial<Record<View, { pts: Pt[]; near: 'left' | 'right' }>> = {};
   const results: Results = {};
+
+  // Nach der Messung: gemessene Linien (grün) und Bezugslinien (gestrichelt) ins Bild zeichnen.
+  ui.setOverlay((ctx) => {
+    if (step !== 'viewDone') return;
+    const d = shown[view()];
+    if (!d) return;
+    const unit = Math.max(ctx.canvas.width, ctx.canvas.height) / 640;
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const ln of overlayLines(view(), d.pts, d.near)) {
+      ctx.strokeStyle = ln.kind === 'measured' ? '#5CC9A8' : 'rgba(232, 233, 232, 0.8)';
+      ctx.lineWidth = (ln.kind === 'measured' ? 3 : 1.5) * unit;
+      ctx.setLineDash(ln.kind === 'measured' ? [] : [6 * unit, 5 * unit]);
+      ctx.beginPath();
+      ctx.moveTo(ln.a.x, ln.a.y);
+      ctx.lineTo(ln.b.x, ln.b.y);
+      ctx.stroke();
+      if (ln.kind === 'measured') {
+        ctx.fillStyle = '#5CC9A8';
+        for (const q of [ln.a, ln.b]) { ctx.beginPath(); ctx.arc(q.x, q.y, 4 * unit, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+    ctx.restore();
+  });
   const rollByView: Partial<Record<View, number>> = {};
   const tilt = new DeviceTiltWatcher();
   let tiltOn = false;
@@ -115,6 +144,8 @@ export function postureController(ui: SessionUI): Controller {
     samples = [];
     rolls = [];
     swappedFrames = 0;
+    measuredPts = [];
+    nearVotes = { left: 0, right: 0 };
     if (ui.isFile) ui.restartVideo();
     ui.panel.replaceChildren(
       h('p', { class: 'panel-text' }, `${VIEW_NAME[view()]}: ruhig stehen. Die Messung startet automatisch.`),
@@ -136,6 +167,8 @@ export function postureController(ui: SessionUI): Controller {
     const v = view();
     const r = summarizeView(samples, v);
     results[v] = r;
+    const mp = meanPoints(measuredPts);
+    if (mp) shown[v] = { pts: mp, near: nearVotes.left >= nearVotes.right ? 'left' : 'right' };
     const roll = mean(rolls);
     if (Number.isFinite(roll)) rollByView[v] = roll;
     ui.setHint(`${VIEW_NAME[v]} gemessen`, 'ok');
@@ -143,6 +176,7 @@ export function postureController(ui: SessionUI): Controller {
       ...nodes(
         h('h2', {}, `${VIEW_NAME[v]}`),
         valueRows(v, r),
+        h('p', { class: 'muted small' }, 'Im Bild: grün = gemessene Linien, gestrichelt = Lot bzw. Waagerechte. Sitzen die grünen Punkte nicht auf Ohr, Schulter, Hüfte, Knie und Knöchel, ist der Wert unsicher.'),
         Number.isFinite(roll) ? h('p', { class: 'panel-text num' }, `Handy war ${Math.abs(Math.round(roll))}° seitlich geneigt.`) : null,
         v === 'back' && swappedFrames > samples.length / 2
           ? h('p', { class: 'muted small' }, 'Hinweis: Die Körperseiten wurden von hinten automatisch richtig zugeordnet.')
@@ -188,6 +222,7 @@ export function postureController(ui: SessionUI): Controller {
 
   return {
     dispose() {
+      ui.setOverlay(null);
       tilt.stop();
     },
     onFrame(frame) {
@@ -223,6 +258,10 @@ export function postureController(ui: SessionUI): Controller {
         case 'measuring':
           // Nur Frames mit passender Position zählen; sonst „nicht messbar“.
           samples.push(pos.ok ? sample : {});
+          if (pos.ok && frame.image) {
+            measuredPts.push(frame.image);
+            if (meta.near) nearVotes[meta.near] += 1;
+          }
           if (meta.swapped) swappedFrames += 1;
           if (tilt.latest) rolls.push(tilt.latest.roll);
           ui.setHint(pos.ok ? 'Messung läuft' : pos.message, pos.ok ? 'info' : 'warn');
