@@ -139,7 +139,8 @@ export { TORSO, LEG };
  * Dev-Server). t = ms seit Start. Standbein links. Ablauf passt zum Einbeinstand-Ablauf:
  * 0–6,5 s normal stehen, dann Startposition; Fuß kurz ab bei 12–13 s; Hand weg bei 18–18,8 s.
  */
-export function syntheticScript(t: number, stand: Side = 'left', still = false, view?: 'front' | 'side' | 'back'): PoseFrame {
+export function syntheticScript(t: number, stand: Side = 'left', still = false, view?: 'front' | 'side' | 'side2' | 'back'): PoseFrame {
+  if (view === 'side2') return makeSidePose({ t, near: 'right', facing: 'imageLeft', headDeg: 8, trunkDeg: -2, legDeg: 2 });
   if (view === 'side') return makeSidePose({ t, headDeg: 12, trunkDeg: -2, legDeg: 1 });
   if (view === 'back') return makePose({ t, backToCamera: true, vis: { [L.nose]: 0.2, [L.leftEye]: 0.15, [L.rightEye]: 0.15, [L.leftEyeInner]: 0.1, [L.rightEyeInner]: 0.1 } });
   if (view === 'front') {
