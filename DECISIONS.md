@@ -221,3 +221,14 @@ Debug zeigt jetzt zusätzlich die Sichtbarkeit beider Handgelenke; Werte über d
   Hohlkreuz, Rundrücken, Fehlhaltung (Test prüft das). Übersicht listet Abweichungen ab 1°, größte zuerst.
 - **Grenze:** alles bezieht sich auf die Bild-Senkrechte → Handy muss gerade stehen
   (Geräteneigung wird angezeigt, nicht herausgerechnet). Kleidung und Haare verschieben Punkte.
+
+## Nachbesserung Haltung (nach erstem Test im Studio)
+
+- Seitlich wurden 23° „Ohr zur Schulter“ gemessen; unklar, ob das stimmt. Mögliche Ursachen:
+  Der Ohrpunkt von MediaPipe sitzt im Profil oft zu weit vorn (Richtung Auge), und die Strecke
+  Schulter–Ohr ist im Bild kurz (~55 px), sodass wenige Pixel viele Grad ausmachen. Außerdem ist
+  0° nicht „ideal“ – ein paar Grad nach vorn sind normal.
+- **Neu:** Nach jeder Ansicht zeichnet die App die gemessenen Linien (grün, gemittelt über die
+  Messung) und die Bezugslinien (gestrichelt: Lot bzw. Waagerechte) ins Bild. So lässt sich
+  direkt sehen, ob die Punkte auf Ohr, Schulter, Hüfte, Knie und Knöchel sitzen.
+- **Fehler behoben:** Rumpfachse bei 0° hieß „waagerecht“, richtig ist „senkrecht“.

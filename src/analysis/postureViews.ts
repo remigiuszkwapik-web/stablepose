@@ -134,7 +134,7 @@ export const METRIC_LABELS: Record<View, Partial<Record<MetricKey, string>>> = {
 /** Richtungstext ohne Bewertung. */
 export function directionText(view: View, key: MetricKey, value: number): string {
   if (!Number.isFinite(value)) return 'nicht gemessen';
-  if (value === 0) return view === 'side' ? 'im Lot' : 'waagerecht';
+  if (value === 0) return view === 'side' || key === 'trunk' ? (view === 'side' ? 'im Lot' : 'senkrecht') : 'waagerecht';
   if (view === 'side') {
     if (key === 'knee') return value > 0 ? 'Knie davor' : 'Knie dahinter';
     return value > 0 ? 'nach vorn' : 'nach hinten';
@@ -158,4 +158,51 @@ export function asymmetries(results: Partial<Record<View, Partial<Record<MetricK
     }
   }
   return items.sort((a, b) => b.deg - a.deg);
+}
+
+/** Mittelwert mehrerer Punktlisten (z. B. über die Messung), für die Anzeige der gemessenen Linien. */
+export function meanPoints(list: Pt[][]): Pt[] | null {
+  if (!list.length) return null;
+  return list[0].map((_, i) => {
+    const n = list.length;
+    return {
+      x: list.reduce((a, p) => a + p[i].x, 0) / n,
+      y: list.reduce((a, p) => a + p[i].y, 0) / n,
+      z: list.reduce((a, p) => a + p[i].z, 0) / n,
+      v: list.reduce((a, p) => a + p[i].v, 0) / n,
+    };
+  });
+}
+
+export interface OverlayLine { a: { x: number; y: number }; b: { x: number; y: number }; kind: 'measured' | 'reference' }
+
+/**
+ * Linien, die nach der Messung ins Bild gezeichnet werden: gemessene Strecken und die Bezugslinie
+ * (Lot bzw. Waagerechte), damit man sieht, ob die Punkte auf dem Körper richtig sitzen.
+ */
+export function overlayLines(view: View, p: Pt[], near: 'left' | 'right' = 'left'): OverlayLine[] {
+  const lines: OverlayLine[] = [];
+  const m = (a: Pt, b: Pt) => lines.push({ a, b, kind: 'measured' });
+  const r = (a: { x: number; y: number }, b: { x: number; y: number }) => lines.push({ a, b, kind: 'reference' });
+  if (view === 'side') {
+    const s = near === 'left'
+      ? [L.leftAnkle, L.leftKnee, L.leftHip, L.leftShoulder, L.leftEar]
+      : [L.rightAnkle, L.rightKnee, L.rightHip, L.rightShoulder, L.rightEar];
+    for (let i = 0; i < s.length - 1; i++) m(p[s[i]], p[s[i + 1]]);
+    // Lot durch den Knöchel bis über den Kopf, und kurze Lote durch Hüfte und Schulter
+    const ankle = p[s[0]];
+    r(ankle, { x: ankle.x, y: p[s[4]].y - 30 });
+    for (const i of [s[2], s[3]]) r({ x: p[i].x, y: p[i].y + 40 }, { x: p[i].x, y: p[i].y - 80 });
+    return lines;
+  }
+  for (const [l, rr] of [[L.leftShoulder, L.rightShoulder], [L.leftHip, L.rightHip], [L.leftEar, L.rightEar]]) {
+    m(p[l], p[rr]);
+    const left = p[l].x < p[rr].x ? p[l] : p[rr];
+    r({ x: left.x - 20, y: left.y }, { x: Math.max(p[l].x, p[rr].x) + 20, y: left.y });
+  }
+  const hm = mid(p[L.leftHip], p[L.rightHip]);
+  const sm = mid(p[L.leftShoulder], p[L.rightShoulder]);
+  m(hm, sm);
+  r(hm, { x: hm.x, y: sm.y - 20 });
+  return lines;
 }
